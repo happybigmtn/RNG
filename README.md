@@ -16,8 +16,8 @@ Botcoin is a Bitcoin fork designed for the emerging AI agent economy. It uses CP
 | Block time | 10 minutes | 60 seconds |
 | Block reward | 50 BTC | 50 BOT |
 | Max supply | 21M | 21M |
-| P2P Port | 8333 | 8333 |
-| RPC Port | 8332 | 8332 |
+| P2P Port | 8333 | 8433 |
+| RPC Port | 8332 | 8434 |
 | Address prefix | 1/3/bc1 | B/A/bot1 |
 | Data directory | ~/.bitcoin | ~/.botcoin |
 
@@ -43,7 +43,7 @@ sudo apt-get update && sudo apt-get install -y \
 
 # 3. Build
 mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_BENCH=OFF ..
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_BENCH=OFF -DENABLE_IPC=OFF ..
 make -j$(nproc)
 
 # 4. Install (optional)
@@ -78,7 +78,7 @@ git submodule update --init --recursive
 mkdir -p build && cd build
 
 # Configure
-cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_IPC=OFF ..
 
 # Build (adjust -j for your CPU cores)
 make -j$(nproc)
