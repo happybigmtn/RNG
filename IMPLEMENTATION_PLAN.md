@@ -568,17 +568,19 @@ def test_user_agent(self):
 
 ### 4.3 Data Directory and Config ✅
 - [x] Change `BITCOIN_CONF_FILENAME` to "botcoin.conf" in `src/common/args.cpp:37` (SIGNED OFF 2026-01-31)
-- [x] Change data directory from `.bitcoin` to `.botcoin` in `src/common/args.cpp:763`
+- [x] Change data directory from `.bitcoin` to `.botcoin` in `src/common/args.cpp:763` (SIGNED OFF 2026-01-31)
 - [x] Change macOS path from "Bitcoin" to "Botcoin" in `src/common/args.cpp:760`
 - [x] Change Windows path from "Bitcoin" to "Botcoin" in `src/common/args.cpp:746`
 
 **Required Tests:**
 ```bash
 # Test: Config file name
-./build/src/botcoind --help 2>&1 | grep -q "botcoin.conf" && echo "PASS: config is botcoin.conf"
+./build/bin/botcoind --help 2>&1 | grep -q "botcoin.conf" && echo "PASS: config is botcoin.conf"
 
-# Test: Data directory (check help output)
-./build/src/botcoind --help 2>&1 | grep -q "\.botcoin" && echo "PASS: data dir is .botcoin"
+# Test: Data directory (check startup log output)
+timeout 5 ./build/bin/botcoind -printtoconsole -debuglogfile=/tmp/botcoin-debug.log \
+  -daemon=0 -listen=0 -connect=0 -dns=0 -dnsseed=0 -natpmp=0 -discover=0 2>&1 | \
+  grep -q "Default data directory .*\\.botcoin" && echo "PASS: data dir is .botcoin"
 ```
 
 **Acceptance Criteria:** Default config is botcoin.conf; default data dir is ~/.botcoin.
