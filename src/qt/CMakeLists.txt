@@ -148,7 +148,7 @@ target_link_libraries(bitcoinqt
     Qt6::Widgets
   PRIVATE
     core_interface
-    bitcoin_cli
+    botcoin_cli
     leveldb
     Boost::headers
     $<TARGET_NAME_IF_EXISTS:QRencode::QRencode>
@@ -222,7 +222,7 @@ if(ENABLE_WALLET)
   )
   target_link_libraries(bitcoinqt
     PRIVATE
-      bitcoin_wallet
+      botcoin_wallet
       Qt6::Network
   )
 endif()
@@ -266,7 +266,7 @@ add_windows_application_manifest(botcoin-qt)
 target_link_libraries(botcoin-qt
   core_interface
   bitcoinqt
-  bitcoin_node
+  botcoin_node
 )
 
 import_plugins(botcoin-qt)
@@ -283,7 +283,7 @@ if(ENABLE_IPC)
   target_link_libraries(bitcoin-gui
     core_interface
     bitcoinqt
-    bitcoin_node
+    botcoin_node
     bitcoin_ipc
   )
   import_plugins(bitcoin-gui)
