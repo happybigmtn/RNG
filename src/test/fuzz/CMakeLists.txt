@@ -144,7 +144,7 @@ target_link_libraries(fuzz
   fuzzer_interface
   test_fuzz
   bitcoin_cli
-  bitcoin_common
+  botcoin_common
   bitcoin_util
   minisketch
   leveldb

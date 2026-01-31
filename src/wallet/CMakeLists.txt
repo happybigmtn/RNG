@@ -37,7 +37,7 @@ add_library(botcoin_wallet STATIC EXCLUDE_FROM_ALL
 target_link_libraries(botcoin_wallet
   PRIVATE
     core_interface
-    bitcoin_common
+    botcoin_common
     $<TARGET_NAME_IF_EXISTS:unofficial::sqlite3::sqlite3>
     $<TARGET_NAME_IF_EXISTS:SQLite::SQLite3>
     univalue
