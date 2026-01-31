@@ -126,3 +126,5 @@ BOOST_AUTO_TEST_CASE(block_reward_schedule)
 
 - [x] Update `bitcoin-util` target to `botcoin-util`
 
+- [x] Update `bitcoin-qt` target to `botcoin-qt` (in qt/CMakeLists.txt - not yet done, GUI optional)
+
