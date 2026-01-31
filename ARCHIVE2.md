@@ -140,3 +140,5 @@ BOOST_AUTO_TEST_CASE(block_reward_schedule)
 
 - [x] Change macOS path from "Bitcoin" to "Botcoin" in `src/common/args.cpp:760`
 
+- [x] Change Windows path from "Bitcoin" to "Botcoin" in `src/common/args.cpp:746`
+
