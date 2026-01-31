@@ -136,3 +136,5 @@ BOOST_AUTO_TEST_CASE(block_reward_schedule)
 
 - [x] Change `BITCOIN_CONF_FILENAME` to "botcoin.conf" in `src/common/args.cpp:37`
 
+- [x] Change data directory from `.bitcoin` to `.botcoin` in `src/common/args.cpp:763`
+
