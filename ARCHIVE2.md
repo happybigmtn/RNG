@@ -124,3 +124,5 @@ BOOST_AUTO_TEST_CASE(block_reward_schedule)
 
 - [x] Update `bitcoin-wallet` target to `botcoin-wallet`
 
+- [x] Update `bitcoin-util` target to `botcoin-util`
+
