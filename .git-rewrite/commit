@@ -1,0 +1,27 @@
+tree 0d7d145efb3df126bc9efb408c81cd0f09430b37
+parent cbb2cf5522983e4a952cfb25e577b1998a06c769
+author Gavin Andresen <gavinandresen@gmail.com> 1427303589 -0400
+committer Gavin Andresen <gavinandresen@gmail.com> 1427385499 -0400
+gpgsig -----BEGIN PGP SIGNATURE-----
+ Version: GnuPG v1
+ 
+ iEYEABECAAYFAlUULKAACgkQdYgkL74406iiNwCg0Pp8zOipaoLi2SY4c2xt5f1E
+ xAwAoI4N/cOO98Q71Mc74dE5gMMhLmbL
+ =Vqwz
+ -----END PGP SIGNATURE-----
+
+Keep mempool consistent during block-reorgs
+
+This fixes a subtle bug involving block re-orgs and non-standard transactions.
+
+Start with a block containing a non-standard transaction, and
+one or more transactions spending it in the memory pool.
+
+Then re-org away from that block to another chain that does
+not contain the non-standard transaction.
+
+Result before this fix: the dependent transactions get stuck
+in the mempool without their parent, putting the mempool
+in an inconsistent state.
+
+Tested with a new unit test.
