@@ -16,8 +16,10 @@ Botcoin is a Bitcoin fork designed for the emerging AI agent economy. It uses CP
 | Block time | 10 minutes | 60 seconds |
 | Block reward | 50 BTC | 50 BOT |
 | Max supply | 21M | 21M |
-| Port | 8333 | 8433 |
+| P2P Port | 8333 | 8333 |
+| RPC Port | 8332 | 8332 |
 | Address prefix | 1/3/bc1 | B/A/bot1 |
+| Data directory | ~/.bitcoin | ~/.botcoin |
 
 ## Why RandomX?
 
@@ -25,66 +27,177 @@ Botcoin is a Bitcoin fork designed for the emerging AI agent economy. It uses CP
 - **ASIC-resistant**: Keeps mining decentralized and accessible
 - **Battle-tested**: Used successfully by Monero
 
+## Quick Start (For AI Agents)
+
+```bash
+# 1. Clone with submodules (REQUIRED)
+git clone --recursive https://github.com/happybigmtn/botcoin.git
+cd botcoin
+
+# 2. Install dependencies (Ubuntu/Debian 22.04+)
+sudo apt-get update && sudo apt-get install -y \
+    build-essential cmake pkg-config git \
+    libboost-all-dev libssl-dev libzmq3-dev \
+    libunbound-dev libsodium-dev libevent-dev \
+    liblzma-dev libsqlite3-dev libminiupnpc-dev
+
+# 3. Build
+mkdir -p build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_BENCH=OFF ..
+make -j$(nproc)
+
+# 4. Install (optional)
+sudo cp src/botcoind src/botcoin-cli /usr/local/bin/
+```
+
+## Building from Source
+
+### Prerequisites
+
+**Ubuntu 22.04+ / Debian 12+:**
+```bash
+sudo apt-get update && sudo apt-get install -y \
+    build-essential cmake pkg-config git \
+    libboost-all-dev libssl-dev libzmq3-dev \
+    libunbound-dev libsodium-dev libevent-dev \
+    liblzma-dev libsqlite3-dev libminiupnpc-dev \
+    libhidapi-dev libusb-1.0-0-dev libudev-dev
+```
+
+### Clone and Build
+
+```bash
+# Clone repository
+git clone https://github.com/happybigmtn/botcoin.git
+cd botcoin
+
+# Initialize submodules (REQUIRED - build will fail without this!)
+git submodule update --init --recursive
+
+# Create build directory
+mkdir -p build && cd build
+
+# Configure
+cmake -DCMAKE_BUILD_TYPE=Release ..
+
+# Build (adjust -j for your CPU cores)
+make -j$(nproc)
+
+# Binaries are in build/src/
+ls -la src/botcoind src/botcoin-cli
+```
+
+### Common Build Errors
+
+| Error | Fix |
+|-------|-----|
+| `RandomX` or submodule errors | Run `git submodule update --init --recursive` |
+| `Could not find Boost` | Install `libboost-all-dev` |
+| `Could not find OpenSSL` | Install `libssl-dev` |
+| `Could not find libevent` | Install `libevent-dev` |
+
+## Running a Node
+
+### Start the Daemon
+
+```bash
+# Start in background
+botcoind -daemon
+
+# Check if running
+botcoin-cli getblockchaininfo
+```
+
+### Create a Wallet
+
+```bash
+# Create a new wallet
+botcoin-cli createwallet "miner"
+
+# Get a new address
+botcoin-cli -rpcwallet=miner getnewaddress
+
+# Check balance
+botcoin-cli -rpcwallet=miner getbalance
+```
+
+## Mining
+
+Botcoin uses RandomX proof-of-work, which is CPU-optimized.
+
+### Solo Mining
+
+```bash
+# Create wallet if you haven't
+botcoin-cli createwallet "miner"
+
+# Get your mining address
+ADDRESS=$(botcoin-cli -rpcwallet=miner getnewaddress)
+
+# Mine blocks (runs until stopped)
+while true; do
+    botcoin-cli -rpcwallet=miner generatetoaddress 1 $ADDRESS
+    sleep 0.1
+done
+```
+
+### Background Mining Script
+
+```bash
+#!/bin/bash
+# save as mine.sh and run with: screen -dmS miner ./mine.sh
+
+WALLET="miner"
+ADDRESS=$(botcoin-cli -rpcwallet=$WALLET getnewaddress)
+
+echo "Mining to $ADDRESS"
+while true; do
+    nice -n 19 botcoin-cli -rpcwallet=$WALLET generatetoaddress 1 $ADDRESS >/dev/null 2>&1
+    sleep 0.1
+done
+```
+
+## Network Status
+
+```bash
+# Check sync status
+botcoin-cli getblockchaininfo | jq '{blocks, headers, verificationprogress}'
+
+# Check peers
+botcoin-cli getpeerinfo | jq '.[].addr'
+
+# Check mining info
+botcoin-cli getmininginfo
+```
+
 ## Target Users
 
-- 🤖 AI agents on [Moltbook](https://moltbook.com) and other platforms
-- 🛠️ Developers building agent-to-agent payment systems
-- 💡 Anyone interested in the intersection of AI and cryptocurrency
+- AI agents on cloud infrastructure
+- Developers building agent-to-agent payment systems
+- Anyone interested in the intersection of AI and cryptocurrency
 
 ## Use Cases
 
 - **Agent-to-agent payments**: Pay other agents for services
 - **Skill marketplace**: Buy and sell AI skills
 - **Compute marketplace**: Trade processing power
-- **Tipping**: Reward quality content from agents
+- **Micropayments**: Low-fee transactions for automated systems
 
-## Building
+## Binaries
 
-```bash
-# Dependencies (Ubuntu/Debian)
-sudo apt-get install build-essential libtool autotools-dev automake pkg-config bsdmainutils python3 libssl-dev libevent-dev libboost-system-dev libboost-filesystem-dev libboost-test-dev libboost-thread-dev libminiupnpc-dev libzmq3-dev libsqlite3-dev
+After building, these executables are in `build/src/`:
 
-# Build
-./autogen.sh
-./configure
-make -j$(nproc)
-```
-
-## Running
-
-```bash
-# Start daemon
-./src/botcoind -daemon
-
-# Create wallet
-./src/botcoin-cli createwallet "agent-wallet"
-
-# Get new address
-./src/botcoin-cli getnewaddress
-
-# Check balance
-./src/botcoin-cli getbalance
-```
-
-## Mining
-
-```bash
-# Solo mining (for testing)
-./src/botcoin-cli generatetoaddress 1 <your_address>
-
-# For production mining, use xmrig with RandomX
-```
+| Binary | Purpose |
+|--------|---------|
+| `botcoind` | Main daemon - runs a full node |
+| `botcoin-cli` | Command-line interface for RPC |
+| `botcoin-tx` | Transaction utility |
+| `botcoin-wallet` | Offline wallet utility |
 
 ## License
 
 Botcoin is released under the terms of the MIT license. See [COPYING](COPYING) for more information.
 
-## Links
-
-- Website: Coming soon
-- Explorer: Coming soon
-- Moltbook: [m/botcoin](https://moltbook.com/m/botcoin)
-
 ---
 
-*Forked from [Bitcoin Core](https://github.com/bitcoin/bitcoin) with ❤️ for the agent economy.*
+*Forked from [Bitcoin Core](https://github.com/bitcoin/bitcoin) with RandomX PoW for the agent economy.*
