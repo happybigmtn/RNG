@@ -4,10 +4,12 @@
 
 #include <node/internal_miner.h>
 
+#include <array>
 #include <chain.h>
 #include <chainparams.h>
 #include <consensus/merkle.h>
 #include <crypto/randomx_hash.h>
+#include <cstring>
 #include <interfaces/mining.h>
 #include <logging.h>
 #include <net.h>
@@ -375,6 +377,8 @@ void InternalMiner::WorkerThread(int thread_id)
     uint64_t last_job_id = 0;
     std::shared_ptr<MiningContext> ctx;
     CBlock working_block;
+    std::array<unsigned char, 80> header_buf{};  // Pre-serialized header (Codex optimization)
+    uint32_t nonce_counter = 0;  // Stride nonce with natural overflow
     
     while (m_running.load(std::memory_order_acquire) && 
            !static_cast<bool>(m_chainman.m_interrupt)) {
@@ -406,37 +410,41 @@ void InternalMiner::WorkerThread(int thread_id)
                 }
             }
             
-            // Copy template
+            // Copy template and PRE-SERIALIZE header once (Codex optimization)
+            // This avoids per-hash DataStream allocation which kills performance
             working_block = ctx->block;
+            DataStream ss{};
+            ss << static_cast<const CBlockHeader&>(working_block);
+            assert(ss.size() == 80);  // Standard header size
+            std::memcpy(header_buf.data(), ss.data(), 80);
+            
+            // Reset nonce counter for this template
+            nonce_counter = static_cast<uint32_t>(thread_id);
             last_job_id = ctx->job_id;
         }
         
-        // STRIDE-BASED NONCE GRINDING
-        // Thread i tries: i, i+N, i+2N, i+3N, ...
-        // This is simpler than ranges and ensures even distribution
+        // STRIDE-BASED NONCE GRINDING (Codex optimized)
+        // Thread i tries: i, i+N, i+2N, i+3N, ... using natural uint32_t overflow
+        // Header is pre-serialized; only mutate nonce bytes (offset 76-79)
         for (uint64_t iter = 0; iter < STALENESS_CHECK_INTERVAL; ++iter) {
-            // Stride nonce: thread_id + iter * num_threads
-            uint32_t nonce = static_cast<uint32_t>((static_cast<uint64_t>(thread_id) + iter * m_num_threads) % UINT32_MAX);
-            working_block.nNonce = nonce;
+            // Write nonce directly to header buffer (little-endian, offset 76)
+            std::memcpy(header_buf.data() + 76, &nonce_counter, 4);
             
-            // Compute hash using per-thread VM (LOCK-FREE)
-            DataStream ss{};
-            ss << static_cast<const CBlockHeader&>(working_block);
-            std::span<const unsigned char> header_data{
-                reinterpret_cast<const unsigned char*>(ss.data()), 
-                ss.size()
-            };
-            uint256 pow_hash = mining_vm.Hash(header_data);
+            // Compute hash using per-thread VM (LOCK-FREE, no allocations)
+            uint256 pow_hash = mining_vm.Hash(header_buf);
             
             ++local_hashes;
             
             // Check if valid
             if (CheckProofOfWork(pow_hash, ctx->nBits, Params().GetConsensus())) {
+                // Update block nonce for submission
+                working_block.nNonce = nonce_counter;
+                
                 LogInfo("╔══════════════════════════════════════════════════════════════╗\n");
                 LogInfo("║  🎉 BLOCK FOUND BY WORKER %d                                 ║\n", thread_id);
                 LogInfo("╠══════════════════════════════════════════════════════════════╣\n");
                 LogInfo("║  Height: %-53d ║\n", ctx->height);
-                LogInfo("║  Nonce:  %-53u ║\n", nonce);
+                LogInfo("║  Nonce:  %-53u ║\n", nonce_counter);
                 LogInfo("║  Hash:   %s... ║\n", pow_hash.ToString().substr(0, 16).c_str());
                 LogInfo("╚══════════════════════════════════════════════════════════════╝\n");
                 
@@ -456,6 +464,9 @@ void InternalMiner::WorkerThread(int thread_id)
                 last_job_id = 0;
                 break;
             }
+            
+            // Stride: add num_threads (natural uint32_t overflow handles wrap)
+            nonce_counter += static_cast<uint32_t>(m_num_threads);
             
             // Check for new job every few iterations
             if (iter % 100 == 99) {
