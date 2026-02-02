@@ -89,38 +89,10 @@ bool InternalMiner::Start(int num_threads,
     LogInfo("║    ✓ Automatic light-mode fallback                          ║\n");
     LogInfo("╚══════════════════════════════════════════════════════════════╝\n");
     
-    // RandomX warmup with progress logging
-    LogInfo("InternalMiner: Warming up RandomX...\n");
-    try {
-        if (fast_mode) {
-            LogInfo("InternalMiner: Initializing RandomX dataset (2GB, ~30-60s)...\n");
-            // Try fast mode first
-            RandomXContext::GetInstance().UpdateSeedHash(uint256{}, true);
-            LogInfo("InternalMiner: RandomX fast mode ready\n");
-        } else {
-            LogInfo("InternalMiner: Initializing RandomX cache (256MB)...\n");
-            RandomXContext::GetInstance().UpdateSeedHash(uint256{}, false);
-            LogInfo("InternalMiner: RandomX light mode ready\n");
-        }
-    } catch (const std::exception& e) {
-        if (fast_mode) {
-            // Fallback to light mode
-            LogInfo("InternalMiner: Fast mode failed (%s), falling back to light mode\n", e.what());
-            m_using_fast_mode.store(false, std::memory_order_relaxed);
-            try {
-                RandomXContext::GetInstance().UpdateSeedHash(uint256{}, false);
-                LogInfo("InternalMiner: RandomX light mode ready (fallback)\n");
-            } catch (const std::exception& e2) {
-                LogInfo("InternalMiner: FATAL - RandomX initialization failed: %s\n", e2.what());
-                m_running.store(false, std::memory_order_release);
-                return false;
-            }
-        } else {
-            LogInfo("InternalMiner: FATAL - RandomX initialization failed: %s\n", e.what());
-            m_running.store(false, std::memory_order_release);
-            return false;
-        }
-    }
+        // Note: RandomX dataset initialization happens when workers get their first template
+    // with the correct seed hash. This avoids initializing with wrong seed.
+    LogInfo("InternalMiner: RandomX will initialize on first template\n");
+    m_using_fast_mode.store(fast_mode, std::memory_order_relaxed);
     
     // Register for block notifications (event-driven)
     if (m_chainman.m_options.signals) {
