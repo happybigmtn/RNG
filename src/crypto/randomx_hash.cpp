@@ -162,13 +162,21 @@ std::optional<uint256> RandomXContext::GetCurrentSeedHash() const {
     return m_current_seed_hash;
 }
 
+randomx_dataset* RandomXContext::GetDataset() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_dataset;  // May be nullptr if fast mode not initialized
+}
+
+randomx_cache* RandomXContext::GetCache() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_cache;
+}
+
 uint256 RandomXContext::Hash(std::span<const unsigned char> input, const uint256& seed_hash) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // Ensure we're initialized with the correct seed
     if (!m_current_seed_hash || *m_current_seed_hash != seed_hash) {
-        // Release lock, call InitLight, then reacquire
-        // Actually, we're holding the lock, so just call directly
         InitLight(seed_hash);
     }
 
@@ -192,6 +200,89 @@ uint256 RandomXContext::HashFast(std::span<const unsigned char> input, const uin
     uint256 result;
     randomx_calculate_hash(m_vm_fast, input.data(), input.size(), result.data());
     return result;
+}
+
+// ============================================================================
+// RandomXMiningVM implementation - Per-thread mining VMs
+// ============================================================================
+
+RandomXMiningVM::RandomXMiningVM() = default;
+
+RandomXMiningVM::~RandomXMiningVM() {
+    if (m_vm) {
+        randomx_destroy_vm(m_vm);
+        m_vm = nullptr;
+    }
+}
+
+RandomXMiningVM::RandomXMiningVM(RandomXMiningVM&& other) noexcept
+    : m_vm(other.m_vm), m_seed_hash(other.m_seed_hash), m_initialized(other.m_initialized) {
+    other.m_vm = nullptr;
+    other.m_initialized = false;
+}
+
+RandomXMiningVM& RandomXMiningVM::operator=(RandomXMiningVM&& other) noexcept {
+    if (this != &other) {
+        if (m_vm) {
+            randomx_destroy_vm(m_vm);
+        }
+        m_vm = other.m_vm;
+        m_seed_hash = other.m_seed_hash;
+        m_initialized = other.m_initialized;
+        other.m_vm = nullptr;
+        other.m_initialized = false;
+    }
+    return *this;
+}
+
+bool RandomXMiningVM::Initialize(const uint256& seed_hash) {
+    // Ensure the global context has initialized fast mode with this seed
+    RandomXContext::GetInstance().UpdateSeedHash(seed_hash, /*fast_mode=*/true);
+    
+    // Get the shared dataset
+    randomx_dataset* dataset = RandomXContext::GetInstance().GetDataset();
+    if (!dataset) {
+        LogInfo("RandomXMiningVM: Dataset not available\n");
+        return false;
+    }
+    
+    // Destroy old VM if exists and seed changed
+    if (m_vm && m_seed_hash != seed_hash) {
+        randomx_destroy_vm(m_vm);
+        m_vm = nullptr;
+    }
+    
+    // Create VM if needed
+    if (!m_vm) {
+        randomx_flags flags = randomx_get_flags();
+        m_vm = randomx_create_vm(flags | RANDOMX_FLAG_JIT | RANDOMX_FLAG_FULL_MEM,
+                                  nullptr, dataset);
+        if (!m_vm) {
+            // Fallback without JIT
+            m_vm = randomx_create_vm(flags | RANDOMX_FLAG_FULL_MEM,
+                                      nullptr, dataset);
+        }
+        if (!m_vm) {
+            LogInfo("RandomXMiningVM: Failed to create VM\n");
+            return false;
+        }
+    }
+    
+    m_seed_hash = seed_hash;
+    m_initialized = true;
+    return true;
+}
+
+uint256 RandomXMiningVM::Hash(std::span<const unsigned char> input) {
+    Assert(m_vm && m_initialized);
+    
+    uint256 result;
+    randomx_calculate_hash(m_vm, input.data(), input.size(), result.data());
+    return result;
+}
+
+bool RandomXMiningVM::HasSeed(const uint256& seed_hash) const {
+    return m_initialized && m_seed_hash == seed_hash;
 }
 
 // ============================================================================
@@ -226,14 +317,6 @@ uint64_t GetRandomXSeedHeight(uint64_t block_height) {
     // Calculate which epoch we're in
     uint64_t adjusted = block_height - RANDOMX_EPOCH_LAG;
     uint64_t epoch = adjusted / RANDOMX_EPOCH_LENGTH;
-
-    // If we're in the lag period of a new epoch, use previous epoch's seed
-    if (adjusted % RANDOMX_EPOCH_LENGTH < RANDOMX_EPOCH_LAG && epoch > 0) {
-        // Actually, the formula handles this - let me verify:
-        // block 2112: adjusted = 2048, epoch = 1, seed = 2048
-        // block 2111: adjusted = 2047, epoch = 0, seed = 0
-        // This is correct.
-    }
 
     return epoch * RANDOMX_EPOCH_LENGTH;
 }

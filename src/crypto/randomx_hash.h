@@ -85,6 +85,19 @@ public:
      */
     std::optional<uint256> GetCurrentSeedHash() const;
 
+    /**
+     * Get the shared dataset for mining VMs.
+     * Returns nullptr if fast mode not initialized.
+     * Thread-safe to call; returned pointer is valid while context exists.
+     */
+    randomx_dataset* GetDataset() const;
+    
+    /**
+     * Get the shared cache.
+     * Returns nullptr if not initialized.
+     */
+    randomx_cache* GetCache() const;
+
     // Disable copy
     RandomXContext(const RandomXContext&) = delete;
     RandomXContext& operator=(const RandomXContext&) = delete;
@@ -103,6 +116,68 @@ private:
     randomx_dataset* m_dataset{nullptr};
     std::optional<uint256> m_current_seed_hash;
     bool m_fast_mode_initialized{false};
+};
+
+/**
+ * Per-thread RandomX mining VM.
+ * 
+ * Each mining thread should create its own RandomXMiningVM instance.
+ * The VM uses the shared dataset from RandomXContext but has its own
+ * VM instance, allowing lock-free parallel hashing.
+ * 
+ * Usage:
+ *   RandomXMiningVM vm;
+ *   vm.Initialize(seed_hash);  // Once per seed epoch
+ *   while (mining) {
+ *       uint256 hash = vm.Hash(header_data);  // Lock-free!
+ *   }
+ */
+class RandomXMiningVM {
+public:
+    RandomXMiningVM();
+    ~RandomXMiningVM();
+    
+    // Disable copy
+    RandomXMiningVM(const RandomXMiningVM&) = delete;
+    RandomXMiningVM& operator=(const RandomXMiningVM&) = delete;
+    
+    // Allow move
+    RandomXMiningVM(RandomXMiningVM&& other) noexcept;
+    RandomXMiningVM& operator=(RandomXMiningVM&& other) noexcept;
+    
+    /**
+     * Initialize VM for a seed hash.
+     * Uses the shared dataset from RandomXContext.
+     * Must be called before Hash().
+     * 
+     * @param seed_hash Seed hash for the current epoch
+     * @return true if initialized successfully
+     */
+    bool Initialize(const uint256& seed_hash);
+    
+    /**
+     * Compute RandomX hash. LOCK-FREE.
+     * Must call Initialize() first.
+     * 
+     * @param input Data to hash (typically 80-byte block header)
+     * @return 256-bit RandomX hash
+     */
+    uint256 Hash(std::span<const unsigned char> input);
+    
+    /**
+     * Check if the VM is ready for hashing.
+     */
+    bool IsReady() const { return m_vm != nullptr; }
+    
+    /**
+     * Check if the current seed hash matches.
+     */
+    bool HasSeed(const uint256& seed_hash) const;
+
+private:
+    randomx_vm* m_vm{nullptr};
+    uint256 m_seed_hash;
+    bool m_initialized{false};
 };
 
 /**

@@ -12,6 +12,7 @@
 #include <logging.h>
 #include <pow.h>
 #include <primitives/block.h>
+#include <streams.h>
 #include <util/signalinterrupt.h>
 #include <util/time.h>
 #include <validation.h>
@@ -256,6 +257,9 @@ void InternalMiner::WorkerThread(int thread_id)
 {
     LogInfo("InternalMiner: Worker %d started\n", thread_id);
     
+    // Create per-thread RandomX VM for lock-free hashing
+    RandomXMiningVM mining_vm;
+    
     // Calculate nonce range for this thread (non-overlapping)
     const uint64_t nonce_range_size = static_cast<uint64_t>(UINT32_MAX) / m_num_threads;
     const uint32_t nonce_start = static_cast<uint32_t>(thread_id * nonce_range_size);
@@ -295,21 +299,35 @@ void InternalMiner::WorkerThread(int thread_id)
             
             if (!ctx) continue;
             
+            // Initialize/update per-thread VM if seed changed
+            if (!mining_vm.HasSeed(ctx->seed_hash)) {
+                if (!mining_vm.Initialize(ctx->seed_hash)) {
+                    LogInfo("InternalMiner: Worker %d failed to init VM\n", thread_id);
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                    continue;
+                }
+                LogInfo("InternalMiner: Worker %d VM initialized\n", thread_id);
+            }
+            
             // Copy block template for local modification
             working_block = ctx->block;
             nonce = nonce_start;  // Reset to start of our range
             last_context_version = ctx->template_id;
         }
         
-        // Pure nonce grinding loop - NO LOCKS
+        // Pure nonce grinding loop - NO LOCKS (per-thread VM)
         for (uint64_t i = 0; i < STALENESS_CHECK_INTERVAL && nonce <= nonce_end; ++i, ++nonce) {
             working_block.nNonce = nonce;
             
-            // Compute RandomX hash
-            uint256 pow_hash = GetBlockPoWHash(
-                static_cast<const CBlockHeader&>(working_block), 
-                ctx->seed_hash
-            );
+            // Compute RandomX hash using per-thread VM (LOCK-FREE!)
+            // Serialize header to bytes
+            DataStream ss{};
+            ss << static_cast<const CBlockHeader&>(working_block);
+            std::span<const unsigned char> header_data{
+                reinterpret_cast<const unsigned char*>(ss.data()), 
+                ss.size()
+            };
+            uint256 pow_hash = mining_vm.Hash(header_data);
             
             ++local_hashes;
             
