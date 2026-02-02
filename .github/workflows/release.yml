@@ -1,0 +1,120 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake git \
+            libboost-all-dev libssl-dev libevent-dev libsqlite3-dev
+      
+      - name: Get RandomX
+        run: |
+          git clone --branch v1.2.1 --depth 1 \
+            https://github.com/tevador/RandomX.git src/crypto/randomx
+      
+      - name: Build
+        run: |
+          cmake -B build \
+            -DBUILD_TESTING=OFF \
+            -DENABLE_IPC=OFF \
+            -DWITH_ZMQ=OFF \
+            -DENABLE_WALLET=ON
+          cmake --build build -j$(nproc)
+      
+      - name: Package
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          mkdir -p release
+          cp build/bin/botcoind build/bin/botcoin-cli release/
+          strip release/botcoind release/botcoin-cli
+          cd release && sha256sum botcoind botcoin-cli > SHA256SUMS
+          cd .. && tar -czvf "botcoin-${VERSION}-linux-x86_64.tar.gz" release
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: botcoin-linux-x86_64
+          path: |
+            botcoin-*-linux-x86_64.tar.gz
+            release/SHA256SUMS
+
+  docker:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get RandomX
+        run: |
+          git clone --branch v1.2.1 --depth 1 \
+            https://github.com/tevador/RandomX.git src/crypto/randomx
+      
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.event.inputs.version || github.ref_name }}
+            ghcr.io/${{ github.repository }}:latest
+
+  release:
+    needs: [build-linux, docker]
+    runs-on: ubuntu-22.04
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: botcoin-linux-x86_64
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            botcoin-*-linux-x86_64.tar.gz
+            release/SHA256SUMS
+          body: |
+            ## Botcoin ${{ github.ref_name }}
+            
+            ### Installation
+            ```bash
+            # Download and extract
+            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/botcoin-${{ github.ref_name }}-linux-x86_64.tar.gz
+            tar -xzf botcoin-${{ github.ref_name }}-linux-x86_64.tar.gz
+            sudo cp release/botcoind release/botcoin-cli /usr/local/bin/
+            
+            # Verify checksums
+            cd release && sha256sum -c SHA256SUMS
+            ```
+            
+            ### Docker
+            ```bash
+            docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            docker run -d --name botcoin ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ```
