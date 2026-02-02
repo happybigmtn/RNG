@@ -10,8 +10,11 @@ on:
         description: 'Version tag (e.g., v1.0.0)'
         required: true
 
+env:
+  RANDOMX_VERSION: v1.2.1
+
 jobs:
-  build-linux:
+  build-linux-x86_64:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -23,17 +26,11 @@ jobs:
             libboost-all-dev libssl-dev libevent-dev libsqlite3-dev
       
       - name: Get RandomX
-        run: |
-          git clone --branch v1.2.1 --depth 1 \
-            https://github.com/tevador/RandomX.git src/crypto/randomx
+        run: git clone --branch ${{ env.RANDOMX_VERSION }} --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
       
       - name: Build
         run: |
-          cmake -B build \
-            -DBUILD_TESTING=OFF \
-            -DENABLE_IPC=OFF \
-            -DWITH_ZMQ=OFF \
-            -DENABLE_WALLET=ON
+          cmake -B build -DBUILD_TESTING=OFF -DENABLE_IPC=OFF -DWITH_ZMQ=OFF -DENABLE_WALLET=ON
           cmake --build build -j$(nproc)
       
       - name: Package
@@ -42,16 +39,84 @@ jobs:
           mkdir -p release
           cp build/bin/botcoind build/bin/botcoin-cli release/
           strip release/botcoind release/botcoin-cli
-          cd release && sha256sum botcoind botcoin-cli > SHA256SUMS
-          cd .. && tar -czvf "botcoin-${VERSION}-linux-x86_64.tar.gz" release
+          cd release && sha256sum botcoind botcoin-cli > SHA256SUMS && cd ..
+          tar -czvf "botcoin-${VERSION}-linux-x86_64.tar.gz" release
       
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: botcoin-linux-x86_64
-          path: |
-            botcoin-*-linux-x86_64.tar.gz
-            release/SHA256SUMS
+          name: linux-x86_64
+          path: botcoin-*-linux-x86_64.tar.gz
+
+  build-linux-arm64:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      
+      - name: Build in ARM64 container
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .github/Dockerfile.arm64
+          platforms: linux/arm64
+          push: false
+          outputs: type=local,dest=./output
+      
+      - name: Package
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          mkdir -p release
+          cp output/botcoind output/botcoin-cli release/ 2>/dev/null || cp output/usr/local/bin/botcoin* release/
+          cd release && sha256sum botcoind botcoin-cli > SHA256SUMS && cd ..
+          tar -czvf "botcoin-${VERSION}-linux-arm64.tar.gz" release
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-arm64
+          path: botcoin-*-linux-arm64.tar.gz
+
+  build-macos:
+    strategy:
+      matrix:
+        include:
+          - runner: macos-13      # Intel
+            arch: x86_64
+          - runner: macos-14      # Apple Silicon
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: brew install cmake boost openssl@3 libevent sqlite
+      
+      - name: Get RandomX
+        run: git clone --branch ${{ env.RANDOMX_VERSION }} --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
+      
+      - name: Build
+        run: |
+          cmake -B build \
+            -DBUILD_TESTING=OFF -DENABLE_IPC=OFF -DWITH_ZMQ=OFF -DENABLE_WALLET=ON \
+            -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3)
+          cmake --build build -j$(sysctl -n hw.ncpu)
+      
+      - name: Package
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          mkdir -p release
+          cp build/bin/botcoind build/bin/botcoin-cli release/
+          strip release/botcoind release/botcoin-cli 2>/dev/null || true
+          cd release && shasum -a 256 botcoind botcoin-cli > SHA256SUMS && cd ..
+          tar -czvf "botcoin-${VERSION}-macos-${{ matrix.arch }}.tar.gz" release
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: botcoin-*-macos-${{ matrix.arch }}.tar.gz
 
   docker:
     runs-on: ubuntu-22.04
@@ -62,9 +127,13 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Get RandomX
-        run: |
-          git clone --branch v1.2.1 --depth 1 \
-            https://github.com/tevador/RandomX.git src/crypto/randomx
+        run: git clone --branch ${{ env.RANDOMX_VERSION }} --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -73,48 +142,65 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Build and push
+      - name: Build and push (multi-arch)
         uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:${{ github.event.inputs.version || github.ref_name }}
             ghcr.io/${{ github.repository }}:latest
 
   release:
-    needs: [build-linux, docker]
+    needs: [build-linux-x86_64, build-linux-arm64, build-macos, docker]
     runs-on: ubuntu-22.04
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: botcoin-linux-x86_64
+          path: artifacts
+      
+      - name: Collect all artifacts
+        run: |
+          mkdir -p dist
+          find artifacts -name "*.tar.gz" -exec mv {} dist/ \;
+          cd dist && cat */SHA256SUMS > SHA256SUMS.txt 2>/dev/null || true
+          ls -la
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            botcoin-*-linux-x86_64.tar.gz
-            release/SHA256SUMS
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          files: dist/*
           body: |
-            ## Botcoin ${{ github.ref_name }}
+            ## Botcoin ${{ github.event.inputs.version || github.ref_name }}
             
-            ### Installation
+            ### Quick Install
             ```bash
-            # Download and extract
-            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/botcoin-${{ github.ref_name }}-linux-x86_64.tar.gz
-            tar -xzf botcoin-${{ github.ref_name }}-linux-x86_64.tar.gz
-            sudo cp release/botcoind release/botcoin-cli /usr/local/bin/
-            
-            # Verify checksums
-            cd release && sha256sum -c SHA256SUMS
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash
             ```
+            
+            ### Downloads
+            | Platform | File |
+            |----------|------|
+            | Linux x86_64 | `botcoin-${{ github.event.inputs.version || github.ref_name }}-linux-x86_64.tar.gz` |
+            | Linux ARM64 | `botcoin-${{ github.event.inputs.version || github.ref_name }}-linux-arm64.tar.gz` |
+            | macOS Intel | `botcoin-${{ github.event.inputs.version || github.ref_name }}-macos-x86_64.tar.gz` |
+            | macOS Apple Silicon | `botcoin-${{ github.event.inputs.version || github.ref_name }}-macos-arm64.tar.gz` |
             
             ### Docker
             ```bash
-            docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-            docker run -d --name botcoin ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            docker pull ghcr.io/${{ github.repository }}:${{ github.event.inputs.version || github.ref_name }}
+            docker run -d --name botcoin --cpus=0.5 ghcr.io/${{ github.repository }}:${{ github.event.inputs.version || github.ref_name }}
+            ```
+            
+            ### Verify Checksums
+            ```bash
+            # Linux
+            sha256sum -c SHA256SUMS
+            # macOS
+            shasum -a 256 -c SHA256SUMS
             ```
