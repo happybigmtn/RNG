@@ -5,7 +5,7 @@
 
 set -e
 
-VERSION="${BOTCOIN_VERSION:-v1.0.0}"
+VERSION="${BOTCOIN_VERSION:-v1.0.1}"
 INSTALL_DIR="${BOTCOIN_INSTALL_DIR:-$HOME/.local/bin}"
 DATA_DIR="${BOTCOIN_DATA_DIR:-$HOME/.botcoin}"
 REPO="happybigmtn/botcoin"
@@ -276,6 +276,16 @@ main() {
     echo "║  The cryptocurrency for AI agents        ║"
     echo "╚══════════════════════════════════════════╝"
     echo ""
+    
+    # Check if already installed (idempotent)
+    if command -v botcoind &>/dev/null && [ "$1" != "--force" ]; then
+        INSTALLED_VERSION=$(botcoind --version 2>/dev/null | head -1 || echo "unknown")
+        success "Botcoin already installed: $INSTALLED_VERSION"
+        info "Location: $(which botcoind)"
+        info "To reinstall, run: $0 --force"
+        info "To uninstall: rm -rf $INSTALL_DIR/botcoin* $DATA_DIR"
+        exit 0
+    fi
     
     detect_platform
     
