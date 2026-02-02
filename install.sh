@@ -11,6 +11,56 @@ DATA_DIR="${BOTCOIN_DATA_DIR:-$HOME/.botcoin}"
 REPO="happybigmtn/botcoin"
 GITHUB_URL="https://github.com/$REPO"
 
+# Flags (safe defaults)
+FORCE=0
+ADD_PATH=0
+NO_VERIFY=0
+NO_CONFIG=0
+
+usage() {
+    cat <<'EOF'
+Botcoin Universal Installer
+
+Usage: ./install.sh [flags]
+
+Flags:
+  --force       Reinstall even if botcoind is already present
+  --add-path    Modify shell rc to add install dir to PATH (opt-in)
+  --no-verify   Skip checksum verification (NOT recommended)
+  --no-config   Do not create ~/.botcoin/botcoin.conf
+  -h, --help    Show this help
+
+Environment variables:
+  BOTCOIN_VERSION      Version to install (default: v1.0.1)
+  BOTCOIN_INSTALL_DIR  Install directory (default: ~/.local/bin)
+  BOTCOIN_DATA_DIR     Data directory (default: ~/.botcoin)
+
+Examples:
+  # Quick install (verify checksums, no dotfile changes)
+  curl -fsSL .../install.sh | bash
+
+  # Install and add to PATH
+  ./install.sh --add-path
+
+  # Reinstall specific version
+  BOTCOIN_VERSION=v1.0.0 ./install.sh --force
+EOF
+}
+
+parse_args() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --force) FORCE=1 ;;
+            --add-path) ADD_PATH=1 ;;
+            --no-verify) NO_VERIFY=1 ;;
+            --no-config) NO_CONFIG=1 ;;
+            -h|--help) usage; exit 0 ;;
+            *) error "Unknown argument: $1 (use --help)" ;;
+        esac
+        shift
+    done
+}
+
 # Colors
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
 
@@ -26,7 +76,6 @@ detect_platform() {
     
     case "$OS" in
         linux*)
-            # Check for WSL
             if grep -qi microsoft /proc/version 2>/dev/null; then
                 OS="windows-wsl"
             else
@@ -54,12 +103,41 @@ check_binary_available() {
         linux-x86_64|linux-arm64|macos-x86_64|macos-arm64)
             return 0 ;;
         windows-wsl-x86_64|windows-wsl-arm64)
-            # WSL uses Linux binaries
             PLATFORM="linux-${ARCH}"
             return 0 ;;
         *)
             return 1 ;;
     esac
+}
+
+# Require checksum tool unless --no-verify
+require_checksum_tool() {
+    if [ "$NO_VERIFY" -eq 1 ]; then
+        warn "Checksum verification disabled (--no-verify)"
+        return 0
+    fi
+    if command -v sha256sum &>/dev/null || command -v shasum &>/dev/null; then
+        return 0
+    fi
+    error "No checksum tool found (sha256sum/shasum). Install one or rerun with --no-verify."
+}
+
+# Verify checksums (fail-closed unless --no-verify)
+verify_checksums() {
+    if [ "$NO_VERIFY" -eq 1 ]; then
+        warn "Skipping checksum verification"
+        return 0
+    fi
+    
+    info "Verifying checksums..."
+    if command -v sha256sum &>/dev/null; then
+        sha256sum -c SHA256SUMS || error "Checksum verification failed!"
+    elif command -v shasum &>/dev/null; then
+        shasum -a 256 -c SHA256SUMS || error "Checksum verification failed!"
+    else
+        error "No checksum tool found (unexpected)."
+    fi
+    success "Checksums verified"
 }
 
 # Download and install pre-built binary
@@ -80,19 +158,12 @@ install_binary() {
         error "Neither curl nor wget found"
     fi
     
-    info "Verifying checksums..."
+    require_checksum_tool
+    
     tar -xzf "$TARBALL"
     cd release
     
-    if command -v sha256sum &>/dev/null; then
-        sha256sum -c SHA256SUMS || error "Checksum verification failed!"
-    elif command -v shasum &>/dev/null; then
-        shasum -a 256 -c SHA256SUMS || error "Checksum verification failed!"
-    else
-        warn "No checksum tool found, skipping verification"
-    fi
-    
-    success "Checksums verified"
+    verify_checksums
     
     # Install to user directory (no sudo needed)
     mkdir -p "$INSTALL_DIR"
@@ -109,7 +180,6 @@ install_binary() {
 build_from_source() {
     info "Building from source (this may take 10-15 minutes)..."
     
-    # Install dependencies based on OS
     case "$OS" in
         linux|windows-wsl)
             if command -v apt-get &>/dev/null; then
@@ -156,7 +226,6 @@ build_from_source() {
     
     cmake --build build -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)
     
-    # Install
     mkdir -p "$INSTALL_DIR"
     cp build/bin/botcoind build/bin/botcoin-cli "$INSTALL_DIR/"
     chmod +x "$INSTALL_DIR/botcoind" "$INSTALL_DIR/botcoin-cli"
@@ -169,6 +238,11 @@ build_from_source() {
 
 # Create default config
 setup_config() {
+    if [ "$NO_CONFIG" -eq 1 ]; then
+        warn "Skipping config creation (--no-config)"
+        return
+    fi
+    
     mkdir -p "$DATA_DIR"
     
     if [ -f "$DATA_DIR/botcoin.conf" ]; then
@@ -200,11 +274,15 @@ EOF
     success "Config created at $DATA_DIR/botcoin.conf"
 }
 
-# Add to PATH
+# Add to PATH (only if --add-path)
 setup_path() {
-    if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
-        warn "$INSTALL_DIR is not in your PATH"
-        
+    if [[ ":$PATH:" == *":$INSTALL_DIR:"* ]]; then
+        return  # Already in PATH
+    fi
+    
+    warn "$INSTALL_DIR is not in your PATH"
+    
+    if [ "$ADD_PATH" -eq 1 ]; then
         SHELL_RC=""
         if [ -n "$BASH_VERSION" ] && [ -f "$HOME/.bashrc" ]; then
             SHELL_RC="$HOME/.bashrc"
@@ -215,18 +293,21 @@ setup_path() {
         fi
         
         if [ -n "$SHELL_RC" ]; then
-            echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$SHELL_RC"
+            echo "export PATH=\"$INSTALL_DIR:\$PATH\"" >> "$SHELL_RC"
             success "Added $INSTALL_DIR to PATH in $SHELL_RC"
             info "Run: source $SHELL_RC"
         else
-            info "Add to your shell config: export PATH=\"\$PATH:$INSTALL_DIR\""
+            info "Add to your shell config: export PATH=\"$INSTALL_DIR:\$PATH\""
         fi
+    else
+        info "Add to PATH: export PATH=\"$INSTALL_DIR:\$PATH\""
+        info "Or rerun with --add-path to auto-configure"
     fi
 }
 
 # Verify installation
 verify_install() {
-    export PATH="$PATH:$INSTALL_DIR"
+    export PATH="$INSTALL_DIR:$PATH"
     
     if ! command -v botcoind &>/dev/null; then
         error "botcoind not found after installation"
@@ -244,6 +325,8 @@ print_next_steps() {
     echo -e "${GREEN}  Botcoin installed successfully!${NC}"
     echo -e "${GREEN}════════════════════════════════════════════════════════════${NC}"
     echo ""
+    echo "Installed to: $INSTALL_DIR"
+    echo ""
     echo "Next steps:"
     echo ""
     echo "  1. Start the daemon:"
@@ -252,7 +335,7 @@ print_next_steps() {
     echo "  2. Check status (wait 10s for startup):"
     echo "     $INSTALL_DIR/botcoin-cli getblockchaininfo"
     echo ""
-    echo "  3. Create wallet and start mining:"
+    echo "  3. Create wallet and mine:"
     echo "     $INSTALL_DIR/botcoin-cli createwallet \"miner\""
     echo "     ADDR=\$($INSTALL_DIR/botcoin-cli -rpcwallet=miner getnewaddress)"
     echo "     $INSTALL_DIR/botcoin-cli -rpcwallet=miner generatetoaddress 1 \"\$ADDR\""
@@ -270,6 +353,8 @@ print_next_steps() {
 
 # Main
 main() {
+    parse_args "$@"
+    
     echo ""
     echo "╔══════════════════════════════════════════╗"
     echo "║  Botcoin Installer                       ║"
@@ -278,7 +363,7 @@ main() {
     echo ""
     
     # Check if already installed (idempotent)
-    if command -v botcoind &>/dev/null && [ "$1" != "--force" ]; then
+    if command -v botcoind &>/dev/null && [ "$FORCE" -ne 1 ]; then
         INSTALLED_VERSION=$(botcoind --version 2>/dev/null | head -1 || echo "unknown")
         success "Botcoin already installed: $INSTALLED_VERSION"
         info "Location: $(which botcoind)"
