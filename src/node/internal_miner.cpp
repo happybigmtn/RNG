@@ -12,7 +12,6 @@
 #include <logging.h>
 #include <pow.h>
 #include <primitives/block.h>
-#include <shutdown.h>
 #include <util/time.h>
 #include <validation.h>
 
