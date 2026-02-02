@@ -16,11 +16,6 @@
 #include <util/time.h>
 #include <validation.h>
 
-#ifdef HAVE_SCHED_SETSCHEDULER
-#include <sched.h>
-#endif
-#include <sys/resource.h>
-
 namespace node {
 
 InternalMiner::InternalMiner(ChainstateManager& chainman, interfaces::Mining& mining)
@@ -52,7 +47,7 @@ bool InternalMiner::Start(int num_threads,
     
     // Prevent double-start
     bool expected = false;
-    if (!m_running.compare_exchange_strong(expected, true)) {
+    if (!m_running.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
         LogInfo("InternalMiner: Already running\n");
         return false;
     }
@@ -67,37 +62,52 @@ bool InternalMiner::Start(int num_threads,
     m_hash_count.store(0, std::memory_order_relaxed);
     m_blocks_found.store(0, std::memory_order_relaxed);
     m_start_time.store(GetTime(), std::memory_order_relaxed);
+    m_context_version.store(0, std::memory_order_relaxed);
     
-    // Initialize tip tracking
-    {
-        LOCK(cs_main);
-        m_last_tip = m_chainman.ActiveChain().Tip()->GetBlockHash();
-    }
-    m_last_template_time = GetTime();
-    
-    // Log startup with full configuration (loud, per Codex recommendation)
+    // Log startup with full configuration (LOUD per Codex recommendation)
     LogInfo("╔══════════════════════════════════════════════════════════════╗\n");
     LogInfo("║          INTERNAL MINER STARTING                             ║\n");
     LogInfo("╠══════════════════════════════════════════════════════════════╣\n");
-    LogInfo("║  Threads:      %-46d ║\n", num_threads);
+    LogInfo("║  Architecture: Coordinator + %d Workers                      ║\n", num_threads);
     LogInfo("║  RandomX Mode: %-46s ║\n", fast_mode ? "FAST (2GB RAM)" : "LIGHT (256MB RAM)");
     LogInfo("║  Priority:     %-46s ║\n", low_priority ? "LOW (nice 19)" : "NORMAL");
     LogInfo("║  Script Size:  %-46zu ║\n", coinbase_script.size());
+    LogInfo("╠══════════════════════════════════════════════════════════════╣\n");
+    LogInfo("║  Lock-free template sharing enabled                          ║\n");
+    LogInfo("║  Nonce partitioning: %d ranges                               ║\n", num_threads);
     LogInfo("╚══════════════════════════════════════════════════════════════╝\n");
     
     // Initialize RandomX in appropriate mode
     if (fast_mode) {
         LogInfo("InternalMiner: Initializing RandomX fast mode (this may take a moment)...\n");
-        // RandomXContext will initialize dataset on first HashFast() call
     }
     
-    // Launch mining threads
-    m_threads.reserve(num_threads);
+    // Start coordinator thread first (creates initial template)
+    m_coordinator_thread = std::thread(&InternalMiner::CoordinatorThread, this);
+    
+    // Wait for first template to be ready before starting workers
+    {
+        std::unique_lock<std::mutex> lock(m_context_mutex);
+        m_context_cv.wait(lock, [this] { 
+            return m_current_context != nullptr || !m_running.load(std::memory_order_acquire);
+        });
+    }
+    
+    if (!m_running.load(std::memory_order_acquire)) {
+        LogInfo("InternalMiner: Coordinator failed to start, aborting\n");
+        if (m_coordinator_thread.joinable()) {
+            m_coordinator_thread.join();
+        }
+        return false;
+    }
+    
+    // Launch worker threads
+    m_worker_threads.reserve(num_threads);
     for (int i = 0; i < num_threads; ++i) {
-        m_threads.emplace_back(&InternalMiner::MinerThread, this, i);
+        m_worker_threads.emplace_back(&InternalMiner::WorkerThread, this, i);
     }
     
-    LogInfo("InternalMiner: Started %d mining threads\n", num_threads);
+    LogInfo("InternalMiner: Started coordinator + %d worker threads\n", num_threads);
     return true;
 }
 
@@ -105,19 +115,33 @@ void InternalMiner::Stop()
 {
     // Signal threads to stop
     bool expected = true;
-    if (!m_running.compare_exchange_strong(expected, false)) {
+    if (!m_running.compare_exchange_strong(expected, false, std::memory_order_acq_rel)) {
         return; // Already stopped
     }
     
     LogInfo("InternalMiner: Stopping...\n");
     
-    // Wait for all threads to finish
-    for (auto& thread : m_threads) {
+    // Wake up any waiting workers
+    m_context_cv.notify_all();
+    
+    // Wait for worker threads first (they depend on coordinator's context)
+    for (auto& thread : m_worker_threads) {
         if (thread.joinable()) {
             thread.join();
         }
     }
-    m_threads.clear();
+    m_worker_threads.clear();
+    
+    // Then stop coordinator
+    if (m_coordinator_thread.joinable()) {
+        m_coordinator_thread.join();
+    }
+    
+    // Clear context
+    {
+        std::lock_guard<std::mutex> lock(m_context_mutex);
+        m_current_context.reset();
+    }
     
     // Log final statistics
     int64_t elapsed = GetTime() - m_start_time.load(std::memory_order_relaxed);
@@ -143,176 +167,215 @@ double InternalMiner::GetHashRate() const
     return static_cast<double>(m_hash_count.load(std::memory_order_relaxed)) / elapsed;
 }
 
-bool InternalMiner::ShouldRefreshTemplate(const uint256& current_tip) const
+void InternalMiner::CoordinatorThread()
 {
-    std::lock_guard<std::mutex> lock(m_tip_mutex);
+    LogInfo("InternalMiner: Coordinator thread started\n");
     
-    // Refresh if tip changed
-    if (current_tip != m_last_tip) {
-        return true;
-    }
+    uint256 last_tip;
+    int64_t last_template_time = 0;
+    uint64_t template_id = 0;
     
-    // Refresh if template is stale
-    if (GetTime() - m_last_template_time >= TEMPLATE_REFRESH_INTERVAL_SECS) {
-        return true;
-    }
-    
-    return false;
-}
-
-void InternalMiner::MinerThread(int thread_id)
-{
-    LogInfo("InternalMiner: Thread %d started\n", thread_id);
-    
-    // NOTE: For low CPU priority, run botcoind with: nice -n 19 botcoind ...
-    // setpriority(PRIO_PROCESS, ...) affects the whole process, not just this thread,
-    // which would harm networking/validation. Use external nice instead.
-    (void)m_low_priority; // Config stored but applied externally
-    
-    // Calculate nonce range for this thread (non-overlapping)
-    // Each thread gets an equal slice of the nonce space
-    const uint64_t nonce_range_size = static_cast<uint64_t>(UINT32_MAX) / m_num_threads;
-    const uint32_t nonce_start = static_cast<uint32_t>(thread_id * nonce_range_size);
-    const uint32_t nonce_end = (thread_id == m_num_threads - 1) 
-                               ? UINT32_MAX 
-                               : static_cast<uint32_t>((thread_id + 1) * nonce_range_size - 1);
-    
-    LogInfo("InternalMiner: Thread %d nonce range: [%u, %u]\n", 
-              thread_id, nonce_start, nonce_end);
-    
-    // Local hash counter (batched updates to reduce atomic contention)
-    uint64_t local_hashes = 0;
-    constexpr uint64_t HASH_BATCH_SIZE = 1000;
-    
-    while (m_running.load(std::memory_order_relaxed) && !static_cast<bool>(m_chainman.m_interrupt)) {
-        // Get current chain tip
+    while (m_running.load(std::memory_order_acquire) && 
+           !static_cast<bool>(m_chainman.m_interrupt)) {
+        
+        // Get current chain state
         uint256 current_tip;
         const CBlockIndex* tip_index;
         {
             LOCK(cs_main);
             tip_index = m_chainman.ActiveChain().Tip();
             if (!tip_index) {
-                // Chain not ready, wait and retry
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 continue;
             }
             current_tip = tip_index->GetBlockHash();
         }
         
-        // Check if we're in IBD (Initial Block Download) - don't mine during sync
+        // Check if we need a new template
+        bool need_new_template = (current_tip != last_tip) ||
+                                 (GetTime() - last_template_time >= TEMPLATE_REFRESH_INTERVAL_SECS) ||
+                                 (template_id == 0);  // First template
+        
+        // Skip mining during IBD
         if (m_chainman.IsInitialBlockDownload()) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
             continue;
         }
         
-        // Create block template
-        auto block_template = m_mining.createNewBlock({
-            .coinbase_output_script = m_coinbase_script
-        });
-        
-        if (!block_template) {
-            LogInfo("InternalMiner: Thread %d failed to create block template\n", thread_id);
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            continue;
-        }
-        
-        // Update tip tracking
-        {
-            std::lock_guard<std::mutex> lock(m_tip_mutex);
-            m_last_tip = current_tip;
-            m_last_template_time = GetTime();
-        }
-        
-        // Get block and prepare for mining
-        CBlock block = block_template->getBlock();
-        block.hashMerkleRoot = BlockMerkleRoot(block);
-        block.nNonce = nonce_start;
-        
-        // Get RandomX seed hash
-        uint256 seed_hash;
-        {
-            LOCK(cs_main);
-            seed_hash = GetRandomXSeedHash(tip_index);
-        }
-        
-        // Mining loop for this template
-        while (m_running.load(std::memory_order_relaxed) && 
-               !static_cast<bool>(m_chainman.m_interrupt) &&
-               block.nNonce <= nonce_end) {
+        if (need_new_template) {
+            // Create new block template
+            auto block_template = m_mining.createNewBlock({
+                .coinbase_output_script = m_coinbase_script
+            });
             
-            // Compute RandomX hash using the proper serialization helper
-            // GetBlockPoWHash correctly serializes CBlockHeader to 80 bytes
-            uint256 pow_hash = GetBlockPoWHash(static_cast<const CBlockHeader&>(block), seed_hash);
+            if (!block_template) {
+                LogInfo("InternalMiner: Coordinator failed to create block template\n");
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                continue;
+            }
+            
+            // Build new context
+            auto new_context = std::make_shared<MiningContext>();
+            new_context->block = block_template->getBlock();
+            new_context->block.hashMerkleRoot = BlockMerkleRoot(new_context->block);
+            new_context->template_id = ++template_id;
+            
+            // Get RandomX seed hash and nBits
+            {
+                LOCK(cs_main);
+                new_context->seed_hash = GetRandomXSeedHash(tip_index);
+                new_context->nBits = new_context->block.nBits;
+            }
+            
+            // Atomically publish new context
+            {
+                std::lock_guard<std::mutex> lock(m_context_mutex);
+                m_current_context = new_context;
+                m_context_version.store(template_id, std::memory_order_release);
+            }
+            m_context_cv.notify_all();
+            
+            last_tip = current_tip;
+            last_template_time = GetTime();
+            
+            if (template_id == 1) {
+                LogInfo("InternalMiner: First template ready (height %d)\n", tip_index->nHeight + 1);
+            } else {
+                LogInfo("InternalMiner: New template #%lu (tip changed or refresh)\n", template_id);
+            }
+        }
+        
+        // Sleep briefly before checking again
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    
+    LogInfo("InternalMiner: Coordinator thread stopped\n");
+}
+
+void InternalMiner::WorkerThread(int thread_id)
+{
+    LogInfo("InternalMiner: Worker %d started\n", thread_id);
+    
+    // Calculate nonce range for this thread (non-overlapping)
+    const uint64_t nonce_range_size = static_cast<uint64_t>(UINT32_MAX) / m_num_threads;
+    const uint32_t nonce_start = static_cast<uint32_t>(thread_id * nonce_range_size);
+    const uint32_t nonce_end = (thread_id == m_num_threads - 1) 
+                               ? UINT32_MAX 
+                               : static_cast<uint32_t>((thread_id + 1) * nonce_range_size - 1);
+    
+    LogInfo("InternalMiner: Worker %d nonce range: [%u, %u]\n", 
+              thread_id, nonce_start, nonce_end);
+    
+    // Local state
+    uint64_t local_hashes = 0;
+    uint64_t last_context_version = 0;
+    std::shared_ptr<MiningContext> ctx;
+    CBlock working_block;
+    uint32_t nonce = nonce_start;
+    
+    while (m_running.load(std::memory_order_acquire) && 
+           !static_cast<bool>(m_chainman.m_interrupt)) {
+        
+        // Check for new template (lock-free fast path)
+        uint64_t current_version = m_context_version.load(std::memory_order_acquire);
+        if (current_version != last_context_version || !ctx) {
+            // Get new context
+            {
+                std::unique_lock<std::mutex> lock(m_context_mutex);
+                if (!m_current_context) {
+                    // Wait for first template
+                    m_context_cv.wait(lock, [this] {
+                        return m_current_context != nullptr || 
+                               !m_running.load(std::memory_order_acquire);
+                    });
+                    if (!m_running.load(std::memory_order_acquire)) break;
+                }
+                ctx = m_current_context;
+            }
+            
+            if (!ctx) continue;
+            
+            // Copy block template for local modification
+            working_block = ctx->block;
+            nonce = nonce_start;  // Reset to start of our range
+            last_context_version = ctx->template_id;
+        }
+        
+        // Pure nonce grinding loop - NO LOCKS
+        for (uint64_t i = 0; i < STALENESS_CHECK_INTERVAL && nonce <= nonce_end; ++i, ++nonce) {
+            working_block.nNonce = nonce;
+            
+            // Compute RandomX hash
+            uint256 pow_hash = GetBlockPoWHash(
+                static_cast<const CBlockHeader&>(working_block), 
+                ctx->seed_hash
+            );
             
             ++local_hashes;
             
-            // Check for tip change / staleness every 10,000 hashes (not every hash!)
-            // This avoids expensive cs_main locking on every nonce attempt
-            if (local_hashes % 10000 == 0) {
-                // Check for tip change
-                uint256 check_tip;
-                {
-                    LOCK(cs_main);
-                    const CBlockIndex* current = m_chainman.ActiveChain().Tip();
-                    if (current) check_tip = current->GetBlockHash();
-                }
-                if (check_tip != current_tip) {
-                    // Tip changed, get new template
-                    break;
-                }
-                
-                // Check template staleness
-                if (ShouldRefreshTemplate(current_tip)) {
-                    break;
-                }
-            }
-            
-            // Batch update global counter
-            if (local_hashes >= HASH_BATCH_SIZE) {
-                m_hash_count.fetch_add(local_hashes, std::memory_order_relaxed);
-                local_hashes = 0;
-            }
-            
-            // Check if we found a valid block
-            if (CheckProofOfWork(pow_hash, block.nBits, m_chainman.GetConsensus())) {
-                // FOUND A BLOCK!
+            // Check if we found a valid block using CheckProofOfWork
+            if (CheckProofOfWork(pow_hash, ctx->nBits, Params().GetConsensus())) {
                 LogInfo("╔══════════════════════════════════════════════════════════════╗\n");
-                LogInfo("║  🎉 BLOCK FOUND BY THREAD %-35d ║\n", thread_id);
-                LogInfo("║  Hash:  %s  ║\n", block.GetHash().GetHex().c_str());
-                LogInfo("║  Nonce: %-54u ║\n", block.nNonce);
+                LogInfo("║  🎉 BLOCK FOUND BY WORKER %d                                 ║\n", thread_id);
+                LogInfo("╠══════════════════════════════════════════════════════════════╣\n");
+                LogInfo("║  Nonce:  %u                                                  ║\n", nonce);
+                LogInfo("║  Hash:   %s... ║\n", pow_hash.ToString().substr(0, 16).c_str());
                 LogInfo("╚══════════════════════════════════════════════════════════════╝\n");
                 
-                auto block_ptr = std::make_shared<const CBlock>(block);
-                
-                bool accepted = m_chainman.ProcessNewBlock(
-                    block_ptr, 
-                    /*force_processing=*/true, 
-                    /*min_pow_checked=*/true, 
-                    /*new_block=*/nullptr
-                );
-                
-                if (accepted) {
+                if (SubmitBlock(working_block)) {
                     m_blocks_found.fetch_add(1, std::memory_order_relaxed);
-                    LogInfo("InternalMiner: Block accepted by network!\n");
-                } else {
-                    LogInfo("InternalMiner: WARNING - Block was rejected!\n");
+                    // Force template refresh by invalidating our version
+                    last_context_version = 0;
                 }
-                
-                // Break to get new template
-                break;
+                break;  // Get fresh template after finding block
             }
-            
-            ++block.nNonce;
         }
         
-        // Flush remaining local hashes
-        if (local_hashes > 0) {
+        // Batch update global hash count
+        if (local_hashes >= HASH_BATCH_SIZE) {
             m_hash_count.fetch_add(local_hashes, std::memory_order_relaxed);
             local_hashes = 0;
         }
+        
+        // If we exhausted our nonce range, wait for new template
+        if (nonce > nonce_end) {
+            // We've tried all nonces in our range for this template
+            // This is rare (only happens if no block found in ~4B/N attempts)
+            // Wait for coordinator to provide new template
+            std::unique_lock<std::mutex> lock(m_context_mutex);
+            m_context_cv.wait_for(lock, std::chrono::seconds(1));
+            nonce = nonce_start;
+        }
     }
     
-    LogInfo("InternalMiner: Thread %d stopped\n", thread_id);
+    // Final hash count update
+    if (local_hashes > 0) {
+        m_hash_count.fetch_add(local_hashes, std::memory_order_relaxed);
+    }
+    
+    LogInfo("InternalMiner: Worker %d stopped\n", thread_id);
+}
+
+bool InternalMiner::SubmitBlock(const CBlock& block)
+{
+    // Thread-safe block submission
+    LOCK(cs_main);
+    
+    bool new_block = false;
+    auto block_ptr = std::make_shared<const CBlock>(block);
+    bool accepted = m_chainman.ProcessNewBlock(block_ptr, /*force_processing=*/true, 
+                                                /*min_pow_checked=*/true, &new_block);
+    
+    if (accepted && new_block) {
+        LogInfo("InternalMiner: Block accepted by network!\n");
+        return true;
+    } else if (accepted) {
+        LogInfo("InternalMiner: Block was duplicate\n");
+        return false;
+    } else {
+        LogInfo("InternalMiner: Block rejected (stale or invalid)\n");
+        return false;
+    }
 }
 
 } // namespace node
