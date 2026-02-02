@@ -175,3 +175,55 @@ For AI agents, see the full skill at:
 *01100110 01110010 01100101 01100101*
 
 The revolution will not be centralized.
+
+## Internal Miner (v2)
+
+Botcoin includes a high-performance internal miner with multi-threaded RandomX hashing.
+
+### Quick Start
+```bash
+botcoind -daemon -mine -mineaddress=YOUR_BOT1_ADDRESS -minethreads=8
+```
+
+### Mining Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-mine` | Enable internal miner | OFF |
+| `-mineaddress=<addr>` | Payout address (required) | - |
+| `-minethreads=<n>` | Number of mining threads | - |
+| `-minerandomx=fast\|light` | RandomX mode (fast=2GB RAM) | fast |
+| `-minepriority=low\|normal` | CPU priority | low |
+
+### Check Mining Status
+```bash
+botcoin-cli getinternalmininginfo
+```
+
+Returns:
+```json
+{
+  "running": true,
+  "threads": 8,
+  "hashrate": 1200.5,
+  "blocks_found": 42,
+  "stale_blocks": 3,
+  "uptime": 3600,
+  "fast_mode": true
+}
+```
+
+### Architecture
+- **Coordinator thread**: Creates block templates, monitors chain tip
+- **Worker threads**: Pure nonce grinding with stride pattern (no locks)
+- **Event-driven**: Reacts instantly to new blocks via ValidationInterface
+- **Per-thread RandomX VMs**: Lock-free hashing, ~1200 H/s per 10 threads
+
+### Recommended Setup
+```bash
+# 8-core machine
+botcoind -daemon -mine -mineaddress=bot1q... -minethreads=7
+
+# Leave 1 core for system/networking
+```
+
