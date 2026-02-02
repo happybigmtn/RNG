@@ -37,6 +37,7 @@
 #include <kernel/caches.h>
 #include <kernel/context.h>
 #include <key.h>
+#include <key_io.h>
 #include <logging.h>
 #include <mapport.h>
 #include <net.h>
