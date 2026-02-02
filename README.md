@@ -9,7 +9,7 @@
 
 **🔒 Verify-first (recommended):**
 ```bash
-VERSION=v1.0.1
+VERSION=v2.1.0
 curl -fsSLO "https://raw.githubusercontent.com/happybigmtn/botcoin/${VERSION}/install.sh"
 less install.sh  # Inspect
 bash install.sh --add-path
@@ -44,8 +44,8 @@ curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.
 
 ### Docker
 ```bash
-docker pull ghcr.io/happybigmtn/botcoin:v1.0.1
-docker run -d --name botcoin --cpus=0.5 -v "$HOME/.botcoin:/home/botcoin/.botcoin" ghcr.io/happybigmtn/botcoin:v1.0.1
+docker pull ghcr.io/happybigmtn/botcoin:v2.1.0
+docker run -d --name botcoin --cpus=0.5 -v "$HOME/.botcoin:/home/botcoin/.botcoin" ghcr.io/happybigmtn/botcoin:v2.1.0
 docker exec botcoin botcoin-cli getblockchaininfo
 ```
 
@@ -57,7 +57,7 @@ docker-compose up -d
 
 ### Manual Binary Download
 ```bash
-VERSION=v1.0.1; PLATFORM=linux-x86_64  # or: linux-arm64, macos-x86_64, macos-arm64
+VERSION=v2.1.0; PLATFORM=linux-x86_64  # or: linux-arm64, macos-x86_64, macos-arm64
 wget "https://github.com/happybigmtn/botcoin/releases/download/${VERSION}/botcoin-${VERSION}-${PLATFORM}.tar.gz"
 tar -xzf "botcoin-${VERSION}-${PLATFORM}.tar.gz" && cd release
 sha256sum -c SHA256SUMS
@@ -109,17 +109,22 @@ botcoin-cli getblockchaininfo | grep -E '"chain"|"blocks"'
 botcoin-cli getconnectioncount  # Expected: 5-10 peers
 ```
 
-### Create Wallet & Mine
+### Create Wallet & Mine (Internal Miner)
 ```bash
 botcoin-cli createwallet "miner"
 ADDR=$(botcoin-cli -rpcwallet=miner getnewaddress)
-nice -n 19 botcoin-cli -rpcwallet=miner generatetoaddress 1 "$ADDR"
-botcoin-cli -rpcwallet=miner getbalance
+
+# Restart daemon with mining enabled (required flags)
+botcoin-cli stop; sleep 5
+nice -n 19 botcoind -daemon -mine -mineaddress="$ADDR" -minethreads=7
+
+# Monitor
+botcoin-cli getinternalmininginfo
 ```
 
 ### Stop
 ```bash
-pkill -f generatetoaddress; botcoin-cli stop
+botcoin-cli stop
 ```
 
 ## How Botcoin Differs from Bitcoin
@@ -146,7 +151,7 @@ RandomX is CPU-friendly, making solo mining practical. We enabled `generatetoadd
 
 ## Trusted Distribution
 
-- ✅ **Docker:** `ghcr.io/happybigmtn/botcoin:v1.0.1` (multi-arch)
+- ✅ **Docker:** `ghcr.io/happybigmtn/botcoin:v2.1.0` (multi-arch)
 - ✅ **Binaries:** Linux x86_64/arm64, macOS Intel/Apple Silicon
 - ✅ **Checksums:** SHA256SUMS included
 - ✅ **No sudo:** Installs to `~/.local/bin` by default

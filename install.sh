@@ -5,7 +5,7 @@
 
 set -e
 
-VERSION="${BOTCOIN_VERSION:-v1.0.1}"
+VERSION="${BOTCOIN_VERSION:-v2.1.0}"
 INSTALL_DIR="${BOTCOIN_INSTALL_DIR:-$HOME/.local/bin}"
 DATA_DIR="${BOTCOIN_DATA_DIR:-$HOME/.botcoin}"
 REPO="happybigmtn/botcoin"
@@ -31,7 +31,7 @@ Flags:
   -h, --help    Show this help
 
 Environment variables:
-  BOTCOIN_VERSION      Version to install (default: v1.0.1)
+  BOTCOIN_VERSION      Version to install (default: v2.1.0)
   BOTCOIN_INSTALL_DIR  Install directory (default: ~/.local/bin)
   BOTCOIN_DATA_DIR     Data directory (default: ~/.botcoin)
 
