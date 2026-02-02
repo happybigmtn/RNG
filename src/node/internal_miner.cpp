@@ -446,6 +446,12 @@ void InternalMiner::WorkerThread(int thread_id)
                     m_stale_blocks.fetch_add(1, std::memory_order_relaxed);
                 }
                 
+                // Flush hash count after block submission
+                if (local_hashes > 0) {
+                    m_hash_count.fetch_add(local_hashes, std::memory_order_relaxed);
+                    local_hashes = 0;
+                }
+                
                 // Force template refresh
                 last_job_id = 0;
                 break;
