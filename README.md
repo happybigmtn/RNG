@@ -76,7 +76,7 @@ sudo cp build/bin/botcoind build/bin/botcoin-cli /usr/local/bin/
 
 ### Build from Source (macOS)
 ```bash
-brew install cmake boost openssl@3 libevent sqlite
+brew install cmake boost openssl@3 libevent sqlite pkg-config
 git clone https://github.com/happybigmtn/botcoin.git && cd botcoin
 git clone --branch v1.2.1 --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
 cmake -B build -DBUILD_TESTING=OFF -DENABLE_IPC=OFF -DWITH_ZMQ=OFF -DENABLE_WALLET=ON -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3)
