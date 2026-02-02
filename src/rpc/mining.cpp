@@ -21,6 +21,7 @@
 #include <key_io.h>
 #include <net.h>
 #include <node/context.h>
+#include <node/internal_miner.h>
 #include <node/miner.h>
 #include <node/warnings.h>
 #include <policy/ephemeral_policy.h>
@@ -505,6 +506,64 @@ static RPCHelpMan getmininginfo()
         obj.pushKV("signet_challenge", HexStr(signet_challenge));
     }
     obj.pushKV("warnings", node::GetWarningsForRpc(*CHECK_NONFATAL(node.warnings), IsDeprecatedRPCEnabled("warnings")));
+    return obj;
+},
+    };
+}
+
+static RPCHelpMan getinternalmininginfo()
+{
+    return RPCHelpMan{
+        "getinternalmininginfo",
+        "Returns information about the internal miner.\n"
+        "Only available when botcoind is started with -mine flag.\n",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::BOOL, "running", "Whether the internal miner is running"},
+                {RPCResult::Type::NUM, "threads", "Number of mining threads"},
+                {RPCResult::Type::NUM, "hashrate", "Current hashrate (H/s)"},
+                {RPCResult::Type::NUM, "hashes", "Total hashes computed"},
+                {RPCResult::Type::NUM, "blocks_found", "Number of blocks found"},
+                {RPCResult::Type::NUM, "stale_blocks", "Number of stale blocks"},
+                {RPCResult::Type::NUM, "templates", "Number of templates created"},
+                {RPCResult::Type::NUM, "uptime", "Seconds since miner started"},
+                {RPCResult::Type::BOOL, "fast_mode", "Whether using RandomX fast mode (2GB)"},
+            }
+        },
+        RPCExamples{
+            HelpExampleCli("getinternalmininginfo", "")
+            + HelpExampleRpc("getinternalmininginfo", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    NodeContext& node = EnsureAnyNodeContext(request.context);
+    
+    UniValue obj(UniValue::VOBJ);
+    
+    if (!node.internal_miner) {
+        obj.pushKV("running", false);
+        obj.pushKV("error", "Internal miner not initialized. Start with -mine flag.");
+        return obj;
+    }
+    
+    const auto& miner = *node.internal_miner;
+    
+    obj.pushKV("running", miner.IsRunning());
+    obj.pushKV("threads", miner.GetThreadCount());
+    obj.pushKV("hashrate", miner.GetHashRate());
+    obj.pushKV("hashes", miner.GetHashCount());
+    obj.pushKV("blocks_found", miner.GetBlocksFound());
+    obj.pushKV("stale_blocks", miner.GetStaleBlocks());
+    obj.pushKV("templates", miner.GetTemplateCount());
+    
+    int64_t start_time = miner.GetStartTime();
+    int64_t uptime = start_time > 0 ? GetTime() - start_time : 0;
+    obj.pushKV("uptime", uptime);
+    
+    obj.pushKV("fast_mode", miner.IsFastMode());
+    
     return obj;
 },
     };
@@ -1153,6 +1212,7 @@ void RegisterMiningRPCCommands(CRPCTable& t)
     static const CRPCCommand commands[]{
         {"mining", &getnetworkhashps},
         {"mining", &getmininginfo},
+        {"mining", &getinternalmininginfo},
         {"mining", &prioritisetransaction},
         {"mining", &getprioritisedtransactions},
         {"mining", &getblocktemplate},

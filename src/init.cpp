@@ -2280,7 +2280,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         CScript coinbase_script = GetScriptForDestination(dest);
         
         // Create and start internal miner
-        node.internal_miner = std::make_unique<node::InternalMiner>(*node.chainman, *node.mining);
+        node.internal_miner = std::make_unique<node::InternalMiner>(*node.chainman, *node.mining, node.connman.get());
         if (!node.internal_miner->Start(mine_threads, coinbase_script, fast_mode, low_priority)) {
             return InitError(_("Failed to start internal miner"));
         }

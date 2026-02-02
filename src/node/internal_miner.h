@@ -15,8 +15,10 @@
 #include <primitives/block.h>
 #include <script/script.h>
 #include <uint256.h>
+#include <validationinterface.h>
 
 class ChainstateManager;
+class CConnman;
 namespace interfaces { class Mining; }
 
 namespace node {
@@ -24,13 +26,14 @@ namespace node {
 /**
  * Internal multi-threaded miner for Botcoin.
  * 
- * Architecture:
+ * Architecture (v2 - per Codex roadmap):
  * - One COORDINATOR thread: creates block templates, monitors chain tip
  * - N WORKER threads: pure nonce grinding with no locks
+ * - Event-driven: subscribes to ValidationSignals for instant new-block reaction
  * - Lock-free template sharing via atomic pointer swap
- * 
- * This design eliminates the lock contention that plagued v1 where all
- * threads competed for cs_main and createNewBlock().
+ * - Stride-based nonces: thread i tries nonces i, i+N, i+2N... (simpler than ranges)
+ * - Backoff on bad conditions: exponential backoff when no peers/IBD/errors
+ * - RandomX warmup: predictable startup with progress logging
  * 
  * Safety guarantees (per Codex review):
  * - Mining is OFF by default (requires explicit -mine flag)
@@ -38,18 +41,17 @@ namespace node {
  * - Requires -minethreads (explicit thread count, logged loudly)
  * - Clean shutdown with proper thread join ordering
  * - Thread-safe statistics via atomics
- * - Nonce partitioning prevents duplicate work
  * 
  * Usage:
  *   botcoind -mine -mineaddress=bot1q... -minethreads=8
  */
-class InternalMiner {
+class InternalMiner : public CValidationInterface {
 public:
     /**
      * Construct internal miner.
      * Does NOT start mining - call Start() explicitly.
      */
-    InternalMiner(ChainstateManager& chainman, interfaces::Mining& mining);
+    InternalMiner(ChainstateManager& chainman, interfaces::Mining& mining, CConnman* connman = nullptr);
     
     /**
      * Destructor ensures clean shutdown.
@@ -100,14 +102,38 @@ public:
     uint64_t GetBlocksFound() const { return m_blocks_found.load(std::memory_order_relaxed); }
     
     /**
+     * Get number of stale blocks (found but rejected).
+     */
+    uint64_t GetStaleBlocks() const { return m_stale_blocks.load(std::memory_order_relaxed); }
+    
+    /**
      * Get current hashrate estimate (hashes per second).
      */
     double GetHashRate() const;
 
     /**
-     * Get number of active mining threads.
+     * Get number of configured mining threads.
      */
     int GetThreadCount() const { return m_num_threads; }
+    
+    /**
+     * Get number of template refreshes.
+     */
+    uint64_t GetTemplateCount() const { return m_template_count.load(std::memory_order_relaxed); }
+    
+    /**
+     * Get start time (Unix timestamp).
+     */
+    int64_t GetStartTime() const { return m_start_time.load(std::memory_order_relaxed); }
+    
+    /**
+     * Check if using fast mode (full dataset) or light mode.
+     */
+    bool IsFastMode() const { return m_using_fast_mode.load(std::memory_order_relaxed); }
+
+protected:
+    // CValidationInterface - event-driven block notifications
+    void UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIndex* pindexFork, bool fInitialDownload) override;
 
 private:
     /**
@@ -118,18 +144,21 @@ private:
         CBlock block;              // Block template (workers modify nNonce only)
         uint256 seed_hash;         // RandomX seed hash
         unsigned int nBits;        // Difficulty bits for CheckProofOfWork
-        uint64_t template_id;      // Monotonic ID to detect staleness
+        uint64_t job_id;           // Monotonic ID to detect staleness
+        int height;                // Block height being mined
         
-        MiningContext() : nBits(0), template_id(0) {}
+        MiningContext() : nBits(0), job_id(0), height(0) {}
     };
 
     /**
      * Coordinator thread: creates templates and monitors chain.
+     * Reacts to m_new_block_signal for event-driven updates.
      */
     void CoordinatorThread();
     
     /**
-     * Worker thread: pure nonce grinding.
+     * Worker thread: pure nonce grinding with stride pattern.
+     * Thread i tries nonces: i, i+num_threads, i+2*num_threads, ...
      * @param thread_id  Unique thread identifier (0 to num_threads-1)
      */
     void WorkerThread(int thread_id);
@@ -139,10 +168,30 @@ private:
      * Thread-safe, called by workers when they find a valid block.
      */
     bool SubmitBlock(const CBlock& block);
+    
+    /**
+     * Create a new block template.
+     * Called by coordinator when tip changes or template is stale.
+     * @return New mining context, or nullptr on failure
+     */
+    std::shared_ptr<MiningContext> CreateTemplate();
+    
+    /**
+     * Check if conditions are good for mining.
+     * @return true if we should mine, false if we should back off
+     */
+    bool ShouldMine() const;
+    
+    /**
+     * Get backoff duration based on current conditions.
+     * Uses exponential backoff with jitter.
+     */
+    std::chrono::milliseconds GetBackoffDuration() const;
 
     // References to node components (must outlive miner)
     ChainstateManager& m_chainman;
     interfaces::Mining& m_mining;
+    CConnman* m_connman;  // May be nullptr
     
     // Mining configuration (set at Start(), immutable during mining)
     CScript m_coinbase_script;
@@ -155,22 +204,34 @@ private:
     std::thread m_coordinator_thread;
     std::vector<std::thread> m_worker_threads;
     
-    // Shared mining context (lock-free via atomic pointer)
-    // Coordinator writes new context, workers read
-    std::shared_ptr<MiningContext> m_current_context;
-    std::mutex m_context_mutex;  // Protects m_current_context writes
-    std::condition_variable m_context_cv;  // Workers wait for new context
-    std::atomic<uint64_t> m_context_version{0};  // For quick staleness check
+    // Event-driven signaling (from ValidationInterface)
+    std::mutex m_signal_mutex;
+    std::condition_variable m_new_block_cv;
+    std::atomic<bool> m_new_block_signal{false};
     
-    // Statistics (thread-safe, updated by workers)
+    // Shared mining context (lock-free via atomic pointer)
+    std::shared_ptr<MiningContext> m_current_context;
+    std::mutex m_context_mutex;
+    std::condition_variable m_context_cv;
+    std::atomic<uint64_t> m_job_id{0};
+    
+    // Statistics (thread-safe)
     std::atomic<uint64_t> m_hash_count{0};
     std::atomic<uint64_t> m_blocks_found{0};
-    std::atomic<int64_t> m_start_time{0};  // Unix timestamp
+    std::atomic<uint64_t> m_stale_blocks{0};
+    std::atomic<uint64_t> m_template_count{0};
+    std::atomic<int64_t> m_start_time{0};
+    std::atomic<bool> m_using_fast_mode{true};
+    
+    // Backoff state
+    mutable std::atomic<int> m_backoff_level{0};
     
     // Constants
     static constexpr int64_t TEMPLATE_REFRESH_INTERVAL_SECS = 30;
-    static constexpr uint64_t HASH_BATCH_SIZE = 10000;  // Update stats every N hashes
-    static constexpr uint64_t STALENESS_CHECK_INTERVAL = 1000;  // Check for new template every N hashes
+    static constexpr uint64_t HASH_BATCH_SIZE = 10000;
+    static constexpr uint64_t STALENESS_CHECK_INTERVAL = 1000;
+    static constexpr int MAX_BACKOFF_LEVEL = 6;  // Max 64 seconds
+    static constexpr int MIN_PEERS_FOR_MINING = 1;
 };
 
 } // namespace node
