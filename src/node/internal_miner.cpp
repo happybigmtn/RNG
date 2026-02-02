@@ -493,7 +493,8 @@ void InternalMiner::WorkerThread(int thread_id)
 
 bool InternalMiner::SubmitBlock(const CBlock& block)
 {
-    LOCK(cs_main);
+    // Note: ProcessNewBlock manages its own locking internally
+    // Wrapping in cs_main causes contention and potential lock inversions
     
     bool new_block = false;
     auto block_ptr = std::make_shared<const CBlock>(block);
