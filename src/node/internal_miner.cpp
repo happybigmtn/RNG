@@ -164,15 +164,10 @@ void InternalMiner::MinerThread(int thread_id)
 {
     LogPrintf("InternalMiner: Thread %d started\n", thread_id);
     
-    // Set low priority if requested
-    if (m_low_priority) {
-        setpriority(PRIO_PROCESS, 0, 19);
-#ifdef HAVE_SCHED_SETSCHEDULER
-        struct sched_param param;
-        param.sched_priority = 0;
-        sched_setscheduler(0, SCHED_IDLE, &param);
-#endif
-    }
+    // NOTE: For low CPU priority, run botcoind with: nice -n 19 botcoind ...
+    // setpriority(PRIO_PROCESS, ...) affects the whole process, not just this thread,
+    // which would harm networking/validation. Use external nice instead.
+    (void)m_low_priority; // Config stored but applied externally
     
     // Calculate nonce range for this thread (non-overlapping)
     // Each thread gets an equal slice of the nonce space
@@ -245,8 +240,16 @@ void InternalMiner::MinerThread(int thread_id)
                !m_chainman.m_interrupt &&
                block.nNonce <= nonce_end) {
             
-            // Check for tip change (another thread found a block, or external block arrived)
-            {
+            // Compute RandomX hash using the proper serialization helper
+            // GetBlockPoWHash correctly serializes CBlockHeader to 80 bytes
+            uint256 pow_hash = GetBlockPoWHash(block.GetBlockHeader(), seed_hash);
+            
+            ++local_hashes;
+            
+            // Check for tip change / staleness every 10,000 hashes (not every hash!)
+            // This avoids expensive cs_main locking on every nonce attempt
+            if (local_hashes % 10000 == 0) {
+                // Check for tip change
                 uint256 check_tip;
                 {
                     LOCK(cs_main);
@@ -257,28 +260,12 @@ void InternalMiner::MinerThread(int thread_id)
                     // Tip changed, get new template
                     break;
                 }
+                
+                // Check template staleness
+                if (ShouldRefreshTemplate(current_tip)) {
+                    break;
+                }
             }
-            
-            // Check template staleness
-            if (ShouldRefreshTemplate(current_tip)) {
-                break;
-            }
-            
-            // Compute RandomX hash
-            uint256 pow_hash;
-            if (m_fast_mode) {
-                pow_hash = RandomXContext::GetInstance().HashFast(
-                    {reinterpret_cast<const unsigned char*>(&block), 80},
-                    seed_hash
-                );
-            } else {
-                pow_hash = RandomXContext::GetInstance().Hash(
-                    {reinterpret_cast<const unsigned char*>(&block), 80},
-                    seed_hash
-                );
-            }
-            
-            ++local_hashes;
             
             // Batch update global counter
             if (local_hashes >= HASH_BATCH_SIZE) {
