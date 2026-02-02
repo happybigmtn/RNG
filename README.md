@@ -1,12 +1,25 @@
-# Botcoin (BOT)
+# Botcoin
 
-**A Bitcoin fork for AI agents. Pure PoW with RandomX.**
+**The cryptocurrency designed for AI agents.** CPU-mineable with RandomX, no special hardware required.
 
-> Genesis message: `01100110 01110010 01100101 01100101` ("free" in binary)
+[![GitHub Release](https://img.shields.io/github/v/release/happybigmtn/botcoin)](https://github.com/happybigmtn/botcoin/releases)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io%2Fhappybigmtn%2Fbotcoin-blue)](https://ghcr.io/happybigmtn/botcoin)
+
+## Quick Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.sh | bash
+```
+
+Or verify first:
+```bash
+VERSION=v1.0.1
+curl -fsSLO "https://raw.githubusercontent.com/happybigmtn/botcoin/${VERSION}/install.sh"
+less install.sh  # Inspect
+bash install.sh --add-path
+```
 
 ## What is Botcoin?
-
-Botcoin is a Bitcoin fork designed for AI agents:
 
 | Feature | Value |
 |---------|-------|
@@ -15,14 +28,100 @@ Botcoin is a Bitcoin fork designed for AI agents:
 | Difficulty adjustment | Every 1 hour (60 blocks) |
 | Block reward | 50 BOT |
 | Max supply | 21,000,000 BOT |
-| P2P Port | 8433 |
-| RPC Port | 8432 |
+| Network | Live mainnet with real peers |
+
+Genesis message: `01100110 01110010 01100101 01100101` ("free" in binary)
 
 **No premine. No ASICs. No permission needed.**
 
----
+## Installation Options
 
-## ⚡ Key Difference from Bitcoin
+### One-Line Install
+```bash
+curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.sh | bash
+```
+
+### Docker
+```bash
+docker pull ghcr.io/happybigmtn/botcoin:v1.0.1
+docker run -d --name botcoin --cpus=0.5 -v "$HOME/.botcoin:/home/botcoin/.botcoin" ghcr.io/happybigmtn/botcoin:v1.0.1
+docker exec botcoin botcoin-cli getblockchaininfo
+```
+
+### Docker Compose
+```bash
+curl -fsSLO https://raw.githubusercontent.com/happybigmtn/botcoin/master/docker-compose.yml
+docker-compose up -d
+```
+
+### Manual Binary Download
+```bash
+VERSION=v1.0.1; PLATFORM=linux-x86_64  # or: linux-arm64, macos-x86_64, macos-arm64
+wget "https://github.com/happybigmtn/botcoin/releases/download/${VERSION}/botcoin-${VERSION}-${PLATFORM}.tar.gz"
+tar -xzf "botcoin-${VERSION}-${PLATFORM}.tar.gz" && cd release
+sha256sum -c SHA256SUMS
+mkdir -p ~/.local/bin && cp botcoind botcoin-cli ~/.local/bin/
+```
+
+### Build from Source (Linux)
+```bash
+sudo apt install -y build-essential cmake git libboost-all-dev libssl-dev libevent-dev libsqlite3-dev
+git clone https://github.com/happybigmtn/botcoin.git && cd botcoin
+git clone --branch v1.2.1 --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
+cmake -B build -DBUILD_TESTING=OFF -DENABLE_IPC=OFF -DWITH_ZMQ=OFF -DENABLE_WALLET=ON
+cmake --build build -j$(nproc)
+sudo cp build/bin/botcoind build/bin/botcoin-cli /usr/local/bin/
+```
+
+### Build from Source (macOS)
+```bash
+brew install cmake boost openssl@3 libevent sqlite
+git clone https://github.com/happybigmtn/botcoin.git && cd botcoin
+git clone --branch v1.2.1 --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
+cmake -B build -DBUILD_TESTING=OFF -DENABLE_IPC=OFF -DWITH_ZMQ=OFF -DENABLE_WALLET=ON -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3)
+cmake --build build -j$(sysctl -n hw.ncpu)
+cp build/bin/botcoind build/bin/botcoin-cli $(brew --prefix)/bin/
+```
+
+## Quick Start
+
+### Configure
+```bash
+mkdir -p ~/.botcoin; RPCPASS=$(openssl rand -hex 16)
+cat > ~/.botcoin/botcoin.conf << EOF
+server=1
+daemon=1
+rpcuser=agent
+rpcpassword=$RPCPASS
+rpcbind=127.0.0.1
+rpcallowip=127.0.0.1
+addnode=95.111.227.14:8433
+addnode=95.111.229.108:8433
+addnode=161.97.83.147:8433
+EOF
+```
+
+### Start & Verify
+```bash
+botcoind -daemon; sleep 10
+botcoin-cli getblockchaininfo | grep -E '"chain"|"blocks"'
+botcoin-cli getconnectioncount  # Expected: 5-10 peers
+```
+
+### Create Wallet & Mine
+```bash
+botcoin-cli createwallet "miner"
+ADDR=$(botcoin-cli -rpcwallet=miner getnewaddress)
+nice -n 19 botcoin-cli -rpcwallet=miner generatetoaddress 1 "$ADDR"
+botcoin-cli -rpcwallet=miner getbalance
+```
+
+### Stop
+```bash
+pkill -f generatetoaddress; botcoin-cli stop
+```
+
+## How Botcoin Differs from Bitcoin
 
 **`generatetoaddress` works on mainnet.** This is intentional.
 
@@ -32,151 +131,43 @@ Botcoin is a Bitcoin fork designed for AI agents:
 | PoW Algorithm | SHA256 (ASIC-dominated) | RandomX (CPU-mineable) |
 | Solo mining | Not viable | Viable for agents |
 
-**Why?** RandomX is CPU-friendly, making solo mining practical. We enabled `generatetoaddress` on mainnet so agents can mine without pool infrastructure.
+RandomX is CPU-friendly, making solo mining practical. We enabled `generatetoaddress` on mainnet so agents can mine without pool infrastructure.
 
----
+## Installer Flags
 
-## Quick Install
+| Flag | Description |
+|------|-------------|
+| `--force` | Reinstall even if already present |
+| `--add-path` | Add install dir to PATH (modifies shell rc) |
+| `--no-verify` | Skip checksum verification (NOT recommended) |
+| `--no-config` | Don't create config file |
+| `-h, --help` | Show help |
 
-### Option 1: Docker (recommended)
+## Trusted Distribution
 
-```bash
-docker pull ghcr.io/happybigmtn/botcoin:v1.0.0
-docker run -d --name botcoin -v ~/.botcoin:/home/botcoin/.botcoin ghcr.io/happybigmtn/botcoin:v1.0.0
-```
-
-### Option 2: Pre-built Binaries (Linux x86_64)
-
-```bash
-wget https://github.com/happybigmtn/botcoin/releases/download/v1.0.0/botcoin-v1.0.0-linux-x86_64.tar.gz
-tar -xzf botcoin-v1.0.0-linux-x86_64.tar.gz && cd release
-sha256sum -c SHA256SUMS  # Verify checksums
-sudo cp botcoind botcoin-cli /usr/local/bin/
-```
-
-### Option 3: Build from Source
-
-**Linux:**
-```bash
-sudo apt update && sudo apt install -y build-essential cmake git libboost-all-dev libssl-dev libevent-dev libsqlite3-dev
-git clone https://github.com/happybigmtn/botcoin.git && cd botcoin
-git clone --branch v1.2.1 --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
-cmake -B build -DBUILD_TESTING=OFF -DENABLE_IPC=OFF -DWITH_ZMQ=OFF -DENABLE_WALLET=ON
-cmake --build build -j$(nproc)
-sudo cp build/bin/botcoind build/bin/botcoin-cli /usr/local/bin/
-```
-
-**macOS:**
-```bash
-brew install cmake boost openssl@3 libevent sqlite
-git clone https://github.com/happybigmtn/botcoin.git && cd botcoin
-git clone --branch v1.2.1 --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
-cmake -B build -DBUILD_TESTING=OFF -DENABLE_IPC=OFF -DWITH_ZMQ=OFF -DENABLE_WALLET=ON -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3)
-cmake --build build -j$(sysctl -n hw.ncpu)
-sudo cp build/bin/botcoind build/bin/botcoin-cli /usr/local/bin/
-```
-
----
-
-## Configure & Start
-
-```bash
-mkdir -p ~/.botcoin
-RPCPASS=$(openssl rand -hex 16)
-printf "server=1\ndaemon=1\nrpcuser=agent\nrpcpassword=%s\nrpcbind=127.0.0.1\nrpcallowip=127.0.0.1\naddnode=95.111.227.14:8433\naddnode=95.111.229.108:8433\naddnode=95.111.239.142:8433\naddnode=161.97.83.147:8433\naddnode=161.97.97.83:8433\n" "$RPCPASS" > ~/.botcoin/botcoin.conf
-
-botcoind -daemon; sleep 10
-botcoin-cli getblockchaininfo | grep -E '"chain"|"blocks"'  # Expected: "chain": "main"
-botcoin-cli getconnectioncount  # Expected: 5+ peers
-```
-
----
-
-## Mining
-
-### Create Wallet & Mine
-
-```bash
-botcoin-cli createwallet "miner"
-ADDR=$(botcoin-cli -rpcwallet=miner getnewaddress); echo "Your address: $ADDR"
-
-# Mine a single block
-nice -n 19 botcoin-cli -rpcwallet=miner generatetoaddress 1 "$ADDR"
-botcoin-cli -rpcwallet=miner getbalance
-```
-
-### Continuous Mining (~50% of cores)
-
-```bash
-ADDR=$(botcoin-cli -rpcwallet=miner getnewaddress); THREADS=$(( $(nproc) / 2 )); [ $THREADS -lt 1 ] && THREADS=1; for i in $(seq 1 $THREADS); do nice -n 19 bash -c "while true; do botcoin-cli -rpcwallet=miner generatetoaddress 1 $ADDR >/dev/null 2>&1; sleep 0.1; done" & done; echo "Mining started with $THREADS threads. Stop: pkill -f generatetoaddress"
-```
-
-### Stop Mining
-
-```bash
-pkill -f generatetoaddress; botcoin-cli stop
-```
-
----
+- ✅ **Docker:** `ghcr.io/happybigmtn/botcoin:v1.0.1` (multi-arch)
+- ✅ **Binaries:** Linux x86_64/arm64, macOS Intel/Apple Silicon
+- ✅ **Checksums:** SHA256SUMS included
+- ✅ **No sudo:** Installs to `~/.local/bin` by default
+- ⚠️ **Windows:** Use WSL2 or Docker
 
 ## Commands Reference
 
 | Command | Description |
 |---------|-------------|
-| `getblockchaininfo` | Network status, chain name, block height |
-| `getconnectioncount` | Number of connected peers |
-| `getpeerinfo` | Details on each peer |
-| `getbalance` | Your wallet balance |
-| `getnewaddress` | Generate new receive address |
-| `generatetoaddress N ADDR` | Mine N blocks to ADDR |
+| `getblockchaininfo` | Network status, block height |
+| `getconnectioncount` | Number of peers |
+| `getbalance` | Wallet balance |
+| `getnewaddress` | Generate receive address |
+| `generatetoaddress N ADDR` | Mine N blocks |
 | `sendtoaddress ADDR AMT` | Send coins |
-| `stop` | Stop the daemon |
+| `stop` | Stop daemon |
 
----
+## AI Agent Skill
 
-## Network Seeds
-
-| IP | Location |
-|----|----------|
-| 95.111.227.14:8433 | EU (Contabo) |
-| 95.111.229.108:8433 | EU (Contabo) |
-| 95.111.239.142:8433 | EU (Contabo) |
-| 161.97.83.147:8433 | EU (Contabo) |
-| 161.97.97.83:8433 | EU (Contabo) |
-| 161.97.114.192:8433 | EU (Contabo) |
-| 161.97.117.0:8433 | EU (Contabo) |
-| 194.163.144.177:8433 | EU (Contabo) |
-| 185.218.126.23:8433 | EU (Contabo) |
-| 185.239.209.227:8433 | EU (Contabo) |
-
----
-
-## For AI Agents
-
-See the full mining skill: [botcoin-miner on ClawHub](https://clawhub.ai/happybigmtn/botcoin-miner)
-
-**Key points:**
-- Local demo (`-regtest`) requires no permission
-- Mainnet mining requires explicit human confirmation
-- Resource limits: ~50% of cores (best-effort), nice 19 priority
-- All commands are single-line safe for copy/paste
-
----
-
-## Verify the Code
-
-Don't trust. Verify.
-
-```bash
-cat CHANGES.md  # See what changed from Bitcoin Core v29
-git log --oneline -20  # Check commit history
-```
-
----
-
-## License
-
-MIT License. See [COPYING](COPYING).
+For AI agents, see the full skill at:
+- **ClawHub:** https://clawhub.ai/happybigmtn/botcoin-miner
+- **Local:** `~/.openclaw/skills/botcoin-miner/SKILL.md`
 
 ---
 
