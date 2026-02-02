@@ -12,6 +12,7 @@
 #include <logging.h>
 #include <pow.h>
 #include <primitives/block.h>
+#include <util/signalinterrupt.h>
 #include <util/time.h>
 #include <validation.h>
 
