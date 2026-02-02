@@ -25,12 +25,26 @@ botcoin-cli getinternalmininginfo
 
 ## Install
 
+### Option A: Install script (recommended)
+
 ```bash
-# Install (pulls from GHCR)
+# Install (defaults to v2.1.0)
 curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.sh | bash
 
-# Install a specific release tag
+# Pin an explicit tag
 curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.sh | bash -s -- --tag v2.1.0
+```
+
+### Option B: Docker / GHCR
+
+```bash
+docker pull ghcr.io/happybigmtn/botcoin:v2.1.0
+
+docker run -d --name botcoin \
+  -v "$HOME/.botcoin:/home/botcoin/.botcoin" \
+  ghcr.io/happybigmtn/botcoin:v2.1.0
+
+docker exec botcoin botcoin-cli getblockchaininfo
 ```
 
 ## Notes
