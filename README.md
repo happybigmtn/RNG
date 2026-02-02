@@ -7,16 +7,17 @@
 
 ## Quick Install
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.sh | bash
-```
-
-Or verify first:
+**🔒 Verify-first (recommended):**
 ```bash
 VERSION=v1.0.1
 curl -fsSLO "https://raw.githubusercontent.com/happybigmtn/botcoin/${VERSION}/install.sh"
 less install.sh  # Inspect
 bash install.sh --add-path
+```
+
+**⚡ One-liner (if you trust us):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.sh | bash
 ```
 
 ## What is Botcoin?
