@@ -56,6 +56,7 @@
 #include <node/mempool_persist.h>
 #include <node/mempool_persist_args.h>
 #include <node/miner.h>
+#include <node/internal_miner.h>
 #include <node/peerman_args.h>
 #include <policy/feerate.h>
 #include <policy/fees/block_policy_estimator.h>
@@ -687,6 +688,13 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-blockreservedweight=<n>", strprintf("Reserve space for the fixed-size block header plus the largest coinbase transaction the mining software may add to the block. (default: %d).", DEFAULT_BLOCK_RESERVED_WEIGHT), ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
     argsman.AddArg("-blockmintxfee=<amt>", strprintf("Set lowest fee rate (in %s/kvB) for transactions to be included in block creation. (default: %s)", CURRENCY_UNIT, FormatMoney(DEFAULT_BLOCK_MIN_TX_FEE)), ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
     argsman.AddArg("-blockversion=<n>", "Override block version to test forking scenarios", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::BLOCK_CREATION);
+
+    // Internal miner options (Botcoin-specific)
+    argsman.AddArg("-mine", "Enable internal multi-threaded mining (default: false)", ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
+    argsman.AddArg("-mineaddress=<addr>", "Address to receive mining rewards (REQUIRED if -mine is set)", ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
+    argsman.AddArg("-minethreads=<n>", "Number of mining threads (REQUIRED if -mine is set)", ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
+    argsman.AddArg("-minerandomx=<mode>", "RandomX mode: 'fast' (2GB RAM) or 'light' (256MB) (default: fast)", ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
+    argsman.AddArg("-minepriority=<level>", "Thread priority: 'low' (nice 19) or 'normal' (default: low)", ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
 
     argsman.AddArg("-rest", strprintf("Accept public REST requests (default: %u)", DEFAULT_REST_ENABLE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpcallowip=<ip>", "Allow JSON-RPC connections from specified source. Valid values for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0), a network/CIDR (e.g. 1.2.3.4/24), all ipv4 (0.0.0.0/0), or all ipv6 (::/0). RFC4193 is allowed only if -cjdnsreachable=0. This option can be specified multiple times", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
@@ -2244,6 +2252,38 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     SetRPCWarmupFinished();
 
     uiInterface.InitMessage(_("Done loading"));
+
+    // Start internal miner if configured
+    if (args.GetBoolArg("-mine", false)) {
+        std::string mine_address = args.GetArg("-mineaddress", "");
+        int mine_threads = args.GetIntArg("-minethreads", 0);
+        
+        // Validate address
+        CTxDestination dest = DecodeDestination(mine_address);
+        if (!IsValidDestination(dest)) {
+            return InitError(strprintf(_("Invalid -mineaddress: %s"), mine_address));
+        }
+        if (mine_address.substr(0, 4) != "bot1") {
+            return InitError(_("mineaddress must be a bech32 address starting with bot1"));
+        }
+        if (mine_threads <= 0) {
+            return InitError(_("minethreads must be set and > 0 when -mine is enabled"));
+        }
+        
+        // Parse optional args
+        std::string randomx_mode = args.GetArg("-minerandomx", "fast");
+        bool fast_mode = (randomx_mode == "fast");
+        std::string priority = args.GetArg("-minepriority", "low");
+        bool low_priority = (priority == "low");
+        
+        CScript coinbase_script = GetScriptForDestination(dest);
+        
+        // Create and start internal miner
+        node.internal_miner = std::make_unique<node::InternalMiner>(*node.chainman, *node.mining);
+        if (!node.internal_miner->Start(mine_threads, coinbase_script, fast_mode, low_priority)) {
+            return InitError(_("Failed to start internal miner"));
+        }
+    }
 
     for (const auto& client : node.chain_clients) {
         client->start(scheduler);
