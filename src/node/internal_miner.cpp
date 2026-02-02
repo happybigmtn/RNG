@@ -25,7 +25,7 @@ namespace node {
 InternalMiner::InternalMiner(ChainstateManager& chainman, interfaces::Mining& mining)
     : m_chainman(chainman), m_mining(mining)
 {
-    LogPrintf("InternalMiner: Initialized (not started)\n");
+    LogInfo("InternalMiner: Initialized (not started)\n");
 }
 
 InternalMiner::~InternalMiner()
@@ -40,19 +40,19 @@ bool InternalMiner::Start(int num_threads,
 {
     // Validate parameters
     if (num_threads <= 0) {
-        LogPrintf("InternalMiner: ERROR - num_threads must be > 0\n");
+        LogInfo("InternalMiner: ERROR - num_threads must be > 0\n");
         return false;
     }
     
     if (coinbase_script.empty()) {
-        LogPrintf("InternalMiner: ERROR - coinbase_script is empty\n");
+        LogInfo("InternalMiner: ERROR - coinbase_script is empty\n");
         return false;
     }
     
     // Prevent double-start
     bool expected = false;
     if (!m_running.compare_exchange_strong(expected, true)) {
-        LogPrintf("InternalMiner: Already running\n");
+        LogInfo("InternalMiner: Already running\n");
         return false;
     }
     
@@ -75,18 +75,18 @@ bool InternalMiner::Start(int num_threads,
     m_last_template_time = GetTime();
     
     // Log startup with full configuration (loud, per Codex recommendation)
-    LogPrintf("╔══════════════════════════════════════════════════════════════╗\n");
-    LogPrintf("║          INTERNAL MINER STARTING                             ║\n");
-    LogPrintf("╠══════════════════════════════════════════════════════════════╣\n");
-    LogPrintf("║  Threads:      %-46d ║\n", num_threads);
-    LogPrintf("║  RandomX Mode: %-46s ║\n", fast_mode ? "FAST (2GB RAM)" : "LIGHT (256MB RAM)");
-    LogPrintf("║  Priority:     %-46s ║\n", low_priority ? "LOW (nice 19)" : "NORMAL");
-    LogPrintf("║  Script Size:  %-46zu ║\n", coinbase_script.size());
-    LogPrintf("╚══════════════════════════════════════════════════════════════╝\n");
+    LogInfo("╔══════════════════════════════════════════════════════════════╗\n");
+    LogInfo("║          INTERNAL MINER STARTING                             ║\n");
+    LogInfo("╠══════════════════════════════════════════════════════════════╣\n");
+    LogInfo("║  Threads:      %-46d ║\n", num_threads);
+    LogInfo("║  RandomX Mode: %-46s ║\n", fast_mode ? "FAST (2GB RAM)" : "LIGHT (256MB RAM)");
+    LogInfo("║  Priority:     %-46s ║\n", low_priority ? "LOW (nice 19)" : "NORMAL");
+    LogInfo("║  Script Size:  %-46zu ║\n", coinbase_script.size());
+    LogInfo("╚══════════════════════════════════════════════════════════════╝\n");
     
     // Initialize RandomX in appropriate mode
     if (fast_mode) {
-        LogPrintf("InternalMiner: Initializing RandomX fast mode (this may take a moment)...\n");
+        LogInfo("InternalMiner: Initializing RandomX fast mode (this may take a moment)...\n");
         // RandomXContext will initialize dataset on first HashFast() call
     }
     
@@ -96,7 +96,7 @@ bool InternalMiner::Start(int num_threads,
         m_threads.emplace_back(&InternalMiner::MinerThread, this, i);
     }
     
-    LogPrintf("InternalMiner: Started %d mining threads\n", num_threads);
+    LogInfo("InternalMiner: Started %d mining threads\n", num_threads);
     return true;
 }
 
@@ -108,7 +108,7 @@ void InternalMiner::Stop()
         return; // Already stopped
     }
     
-    LogPrintf("InternalMiner: Stopping...\n");
+    LogInfo("InternalMiner: Stopping...\n");
     
     // Wait for all threads to finish
     for (auto& thread : m_threads) {
@@ -123,16 +123,16 @@ void InternalMiner::Stop()
     uint64_t hashes = m_hash_count.load(std::memory_order_relaxed);
     uint64_t blocks = m_blocks_found.load(std::memory_order_relaxed);
     
-    LogPrintf("╔══════════════════════════════════════════════════════════════╗\n");
-    LogPrintf("║          INTERNAL MINER STOPPED                              ║\n");
-    LogPrintf("╠══════════════════════════════════════════════════════════════╣\n");
-    LogPrintf("║  Runtime:      %-43ld s ║\n", elapsed);
-    LogPrintf("║  Total Hashes: %-46lu ║\n", hashes);
-    LogPrintf("║  Blocks Found: %-46lu ║\n", blocks);
+    LogInfo("╔══════════════════════════════════════════════════════════════╗\n");
+    LogInfo("║          INTERNAL MINER STOPPED                              ║\n");
+    LogInfo("╠══════════════════════════════════════════════════════════════╣\n");
+    LogInfo("║  Runtime:      %-43ld s ║\n", elapsed);
+    LogInfo("║  Total Hashes: %-46lu ║\n", hashes);
+    LogInfo("║  Blocks Found: %-46lu ║\n", blocks);
     if (elapsed > 0) {
-        LogPrintf("║  Avg Hashrate: %-42.2f H/s ║\n", static_cast<double>(hashes) / elapsed);
+        LogInfo("║  Avg Hashrate: %-42.2f H/s ║\n", static_cast<double>(hashes) / elapsed);
     }
-    LogPrintf("╚══════════════════════════════════════════════════════════════╝\n");
+    LogInfo("╚══════════════════════════════════════════════════════════════╝\n");
 }
 
 double InternalMiner::GetHashRate() const
@@ -161,7 +161,7 @@ bool InternalMiner::ShouldRefreshTemplate(const uint256& current_tip) const
 
 void InternalMiner::MinerThread(int thread_id)
 {
-    LogPrintf("InternalMiner: Thread %d started\n", thread_id);
+    LogInfo("InternalMiner: Thread %d started\n", thread_id);
     
     // NOTE: For low CPU priority, run botcoind with: nice -n 19 botcoind ...
     // setpriority(PRIO_PROCESS, ...) affects the whole process, not just this thread,
@@ -176,14 +176,14 @@ void InternalMiner::MinerThread(int thread_id)
                                ? UINT32_MAX 
                                : static_cast<uint32_t>((thread_id + 1) * nonce_range_size - 1);
     
-    LogPrintf("InternalMiner: Thread %d nonce range: [%u, %u]\n", 
+    LogInfo("InternalMiner: Thread %d nonce range: [%u, %u]\n", 
               thread_id, nonce_start, nonce_end);
     
     // Local hash counter (batched updates to reduce atomic contention)
     uint64_t local_hashes = 0;
     constexpr uint64_t HASH_BATCH_SIZE = 1000;
     
-    while (m_running.load(std::memory_order_relaxed) && !m_chainman.m_interrupt) {
+    while (m_running.load(std::memory_order_relaxed) && !static_cast<bool>(m_chainman.m_interrupt)) {
         // Get current chain tip
         uint256 current_tip;
         const CBlockIndex* tip_index;
@@ -210,7 +210,7 @@ void InternalMiner::MinerThread(int thread_id)
         });
         
         if (!block_template) {
-            LogPrintf("InternalMiner: Thread %d failed to create block template\n", thread_id);
+            LogInfo("InternalMiner: Thread %d failed to create block template\n", thread_id);
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             continue;
         }
@@ -236,12 +236,12 @@ void InternalMiner::MinerThread(int thread_id)
         
         // Mining loop for this template
         while (m_running.load(std::memory_order_relaxed) && 
-               !m_chainman.m_interrupt &&
+               !static_cast<bool>(m_chainman.m_interrupt) &&
                block.nNonce <= nonce_end) {
             
             // Compute RandomX hash using the proper serialization helper
             // GetBlockPoWHash correctly serializes CBlockHeader to 80 bytes
-            uint256 pow_hash = GetBlockPoWHash(block.GetBlockHeader(), seed_hash);
+            uint256 pow_hash = GetBlockPoWHash(static_cast<const CBlockHeader&>(block), seed_hash);
             
             ++local_hashes;
             
@@ -275,11 +275,11 @@ void InternalMiner::MinerThread(int thread_id)
             // Check if we found a valid block
             if (CheckProofOfWork(pow_hash, block.nBits, m_chainman.GetConsensus())) {
                 // FOUND A BLOCK!
-                LogPrintf("╔══════════════════════════════════════════════════════════════╗\n");
-                LogPrintf("║  🎉 BLOCK FOUND BY THREAD %-35d ║\n", thread_id);
-                LogPrintf("║  Hash:  %s  ║\n", block.GetHash().GetHex().c_str());
-                LogPrintf("║  Nonce: %-54u ║\n", block.nNonce);
-                LogPrintf("╚══════════════════════════════════════════════════════════════╝\n");
+                LogInfo("╔══════════════════════════════════════════════════════════════╗\n");
+                LogInfo("║  🎉 BLOCK FOUND BY THREAD %-35d ║\n", thread_id);
+                LogInfo("║  Hash:  %s  ║\n", block.GetHash().GetHex().c_str());
+                LogInfo("║  Nonce: %-54u ║\n", block.nNonce);
+                LogInfo("╚══════════════════════════════════════════════════════════════╝\n");
                 
                 auto block_ptr = std::make_shared<const CBlock>(block);
                 
@@ -292,9 +292,9 @@ void InternalMiner::MinerThread(int thread_id)
                 
                 if (accepted) {
                     m_blocks_found.fetch_add(1, std::memory_order_relaxed);
-                    LogPrintf("InternalMiner: Block accepted by network!\n");
+                    LogInfo("InternalMiner: Block accepted by network!\n");
                 } else {
-                    LogPrintf("InternalMiner: WARNING - Block was rejected!\n");
+                    LogInfo("InternalMiner: WARNING - Block was rejected!\n");
                 }
                 
                 // Break to get new template
@@ -311,7 +311,7 @@ void InternalMiner::MinerThread(int thread_id)
         }
     }
     
-    LogPrintf("InternalMiner: Thread %d stopped\n", thread_id);
+    LogInfo("InternalMiner: Thread %d stopped\n", thread_id);
 }
 
 } // namespace node
