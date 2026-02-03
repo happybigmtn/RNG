@@ -210,11 +210,15 @@ void InternalMiner::UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIn
 
 bool InternalMiner::ShouldMine() const
 {
-    // Don't mine during IBD
-    if (m_chainman.IsInitialBlockDownload()) {
-        return false;
-    }
-    
+    // NOTE(Botcoin): Do NOT gate mining on IBD.
+    //
+    // Bitcoin Core treats a tip older than DEFAULT_MAX_TIP_AGE as "IBD", which is
+    // sensible for a mature network but can deadlock a young chain: if block
+    // production pauses for >24h, nodes stay in IBD, the internal miner refuses
+    // to create templates, and the chain can never recover.
+    //
+    // Peering / partition safety is handled below via MIN_PEERS_FOR_MINING.
+
     // Check peer count if we have connman
     if (m_connman) {
         int peer_count = m_connman->GetNodeCount(ConnectionDirection::Both);
@@ -403,7 +407,7 @@ void InternalMiner::WorkerThread(int thread_id)
             
             // Initialize/update per-thread VM if seed changed
             if (!mining_vm.HasSeed(ctx->seed_hash)) {
-                if (!mining_vm.Initialize(ctx->seed_hash)) {
+                if (!mining_vm.Initialize(ctx->seed_hash, m_fast_mode)) {
                     LogInfo("InternalMiner: Worker %d VM init failed, retrying...\n", thread_id);
                     std::this_thread::sleep_for(std::chrono::seconds(1));
                     continue;

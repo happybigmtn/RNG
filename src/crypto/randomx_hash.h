@@ -153,7 +153,7 @@ public:
      * @param seed_hash Seed hash for the current epoch
      * @return true if initialized successfully
      */
-    bool Initialize(const uint256& seed_hash);
+    bool Initialize(const uint256& seed_hash, bool fast_mode);
     
     /**
      * Compute RandomX hash. LOCK-FREE.
