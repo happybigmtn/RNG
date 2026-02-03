@@ -1,11 +1,26 @@
 # Botcoin
 
-**The cryptocurrency designed for AI agents.** CPU-mineable with RandomX, no special hardware required.
+**Botcoin is the cryptocurrency designed for AI agents.**
+
+## Why this matters
+
+Botcoin is an experiment in **agent autonomy through proof-of-work**.
+
+It’s a chance for agents (and their humans) to turn ordinary CPU time into on-chain value — no GPUs, no ASICs, no pool infrastructure required.
+
+If you operate agents on behalf of a human:
+- Mining can create an **operating budget** (infra, tools, experiments)
+- That can translate into *more agency* for the agent and *more upside* for the human protégé
+
+**CPU-mineable with RandomX** means the barrier to participation is low: any VPS, laptop, or home server can contribute.
 
 [![GitHub Release](https://img.shields.io/github/v/release/happybigmtn/botcoin)](https://github.com/happybigmtn/botcoin/releases)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io%2Fhappybigmtn%2Fbotcoin-blue)](https://ghcr.io/happybigmtn/botcoin)
 
 ## Quick Install
+
+If you just want to try it quickly, use the installer.
+If you want maximum assurance, use **Manual Binary Download** (verify SHA256SUMS) or **Build from Source**.
 
 **🔒 Verify-first (recommended):**
 ```bash
@@ -20,7 +35,28 @@ bash install.sh --add-path
 curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.sh | bash
 ```
 
+---
+
+## Recent history (why the network is healthy again)
+
+Botcoin has been iterating rapidly. In early February 2026 we hit a real-world stall where mining stopped producing templates ("no templates / timeout waiting for first template").
+
+What changed:
+- We fixed the internal miner’s behavior so it can mine through edge-case IBD conditions (see `docs/lessons-learned-fleet-recovery.md`).
+- We standardized on a **single canonical build artifact** across miners (sha256-verified).
+- We performed an **Option A reset**: wiped datadirs fleet-wide and **re-mined from genesis** to get a single canonical chain.
+
+Result: the fleet is now steadily producing blocks and converging normally.
+
 ## What is Botcoin?
+
+### A quick note on trust
+Botcoin is derived from Bitcoin Core, but it is **not identical** (it uses RandomX and includes an internal miner).
+
+If you are an independent third party deciding whether to mine:
+- **Pin a version** (tag/commit) and avoid “latest” automation
+- Prefer **official release tarballs + SHA256SUMS**, or build from source
+- Review changes in consensus/mining-critical areas (chainparams, validation, PoW/hash)
 
 | Feature | Value |
 |---------|-------|
@@ -36,6 +72,17 @@ Genesis message: `01100110 01110010 01100101 01100101` ("free" in binary)
 **No premine. No ASICs. No permission needed.**
 
 ## Installation Options
+
+### Available binaries / platforms
+
+Botcoin publishes downloadable release tarballs on GitHub Releases:
+- `linux-x86_64` (also works on **WSL2**)
+- `linux-arm64`
+- `macos-x86_64`
+- `macos-arm64`
+
+Releases are produced by GitHub Actions **when a version tag is pushed** (see `.github/workflows/release.yml`).
+If you don’t see a new tag yet, use Docker or build from source.
 
 ### One-Line Install
 ```bash
@@ -55,20 +102,32 @@ curl -fsSLO https://raw.githubusercontent.com/happybigmtn/botcoin/master/docker-
 docker-compose up -d
 ```
 
-### Manual Binary Download
+### Manual Binary Download (recommended)
 ```bash
-VERSION=v2.1.0; PLATFORM=linux-x86_64  # or: linux-arm64, macos-x86_64, macos-arm64
+VERSION=v2.1.0
+PLATFORM=linux-x86_64  # also: linux-arm64, macos-x86_64, macos-arm64
+
 wget "https://github.com/happybigmtn/botcoin/releases/download/${VERSION}/botcoin-${VERSION}-${PLATFORM}.tar.gz"
-tar -xzf "botcoin-${VERSION}-${PLATFORM}.tar.gz" && cd release
+tar -xzf "botcoin-${VERSION}-${PLATFORM}.tar.gz"
+cd release
+
+# Verify
 sha256sum -c SHA256SUMS
-mkdir -p ~/.local/bin && cp botcoind botcoin-cli ~/.local/bin/
+
+# Install
+mkdir -p ~/.local/bin
+cp botcoind botcoin-cli ~/.local/bin/
 ```
 
 ### Build from Source (Linux)
 ```bash
 sudo apt install -y build-essential cmake git libboost-all-dev libssl-dev libevent-dev libsqlite3-dev
+
 git clone https://github.com/happybigmtn/botcoin.git && cd botcoin
-git clone --branch v1.2.1 --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
+
+# RandomX is vendored as a submodule:
+git submodule update --init --recursive -- src/crypto/randomx
+
 cmake -B build -DBUILD_TESTING=OFF -DENABLE_IPC=OFF -DWITH_ZMQ=OFF -DENABLE_WALLET=ON
 cmake --build build -j$(nproc)
 sudo cp build/bin/botcoind build/bin/botcoin-cli /usr/local/bin/
@@ -77,9 +136,14 @@ sudo cp build/bin/botcoind build/bin/botcoin-cli /usr/local/bin/
 ### Build from Source (macOS)
 ```bash
 brew install cmake boost openssl@3 libevent sqlite pkg-config
+
 git clone https://github.com/happybigmtn/botcoin.git && cd botcoin
-git clone --branch v1.2.1 --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
-cmake -B build -DBUILD_TESTING=OFF -DENABLE_IPC=OFF -DWITH_ZMQ=OFF -DENABLE_WALLET=ON -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3)
+
+# RandomX is vendored as a submodule:
+git submodule update --init --recursive -- src/crypto/randomx
+
+cmake -B build -DBUILD_TESTING=OFF -DENABLE_IPC=OFF -DWITH_ZMQ=OFF -DENABLE_WALLET=ON \
+  -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3)
 cmake --build build -j$(sysctl -n hw.ncpu)
 cp build/bin/botcoind build/bin/botcoin-cli $(brew --prefix)/bin/
 ```
@@ -154,7 +218,15 @@ botcoind -daemon -minerandomx=light
 
 ## Fork Recovery / Resync (wipe + sync from a canonical peer)
 
-### Fleet note (real incident)
+### Network restart note (history)
+In early February 2026 we hit a real-world stall ("no templates / stuck height") and chose to do an **Option A reset**:
+- keep the same chain parameters,
+- wipe datadirs across the fleet,
+- **re-mine from genesis** with RandomX **light** mode.
+
+This was done to get the network back into a healthy, continuously-mining state with a single canonical chain.
+
+### Fleet note (practical)
 If you reset a fleet from genesis and start **many miners at once**, you should expect **temporary forks**. For fastest convergence:
 1) mine on 1–2 nodes,
 2) have the rest sync with `-connect=<canonical-peer>`,

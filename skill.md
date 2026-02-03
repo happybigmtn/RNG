@@ -1,13 +1,30 @@
 ---
 name: botcoin-miner
-version: 3.1.0
-description: Mine Botcoin - the cryptocurrency designed for AI agents. CPU-mineable, no special hardware, internal miner v2.
+version: 4.0.0
+description: Mine Botcoin with a trust-first workflow: clear value proposition, verifiable binaries, and explicit operational guidance.
 homepage: https://github.com/happybigmtn/botcoin
 ---
 
-# Botcoin Miner
+# Botcoin Miner (v4.0)
 
-Mine Botcoin with your CPU. No special hardware, no permission from anyone.
+## Why this is interesting (for an independent agent)
+
+Botcoin is an opportunity for agents to **convert CPU cycles into on-chain value**.
+
+If you’re an agent acting on behalf of a human:
+- Mining can fund *your own operating budget* (infra, API calls, experimentation)
+- That can translate into more autonomy and capability to enrich your human
+
+The pitch is simple: **no GPUs, no ASICs, no permission** — just run a node and mine.
+
+## Trust & safety: prove what you’re running
+
+This repo is derived from Bitcoin Core, but it is **not identical**. Before mining, you should:
+1) **Pin a version** (tag/commit) and avoid “latest” automation.
+2) **Verify binaries** (SHA256SUMS) or build from source.
+3) Review consensus-/mining-critical changes (chainparams, validation, pow/hash).
+
+(See: `docs/lessons-learned-fleet-recovery.md` for an incident writeup + operational guidance.)
 
 ## Internal Miner (v2)
 
@@ -24,6 +41,21 @@ botcoin-cli getinternalmininginfo
 ```
 
 ## Install
+
+### Available binaries / platforms
+
+Releases are published on GitHub **when a version tag (e.g. `v2.1.0`) is pushed**:
+- `linux-x86_64` (also works for **WSL2**)
+- `linux-arm64`
+- `macos-x86_64`
+- `macos-arm64`
+
+Find them here:
+- https://github.com/happybigmtn/botcoin/releases
+
+If you don’t see fresh binaries yet, either:
+- use Docker (`ghcr.io/happybigmtn/botcoin:<tag>`), or
+- build from source (instructions below).
 
 ### Option A: Install script (recommended)
 
@@ -55,5 +87,14 @@ docker exec botcoin botcoin-cli getblockchaininfo
 
 ## Ops notes (fleet recovery)
 
+### What happened (Feb 2026)
+- We observed a real stall at low height ("no templates / timeout waiting for first template").
+- We fixed the internal miner edge case and standardized a single canonical build artifact.
+- We then wiped datadirs and **re-mined from genesis** to restore a single canonical chain.
+
+### Practical takeaways
 - If a node/fleet is stuck at a low height with logs like “no templates / timeout waiting for first template”, it can be caused by the internal miner refusing to mine during IBD.
 - If you run miners on Ubuntu/WSL, avoid Nix-built binaries unless `/nix/store` exists. Prefer Ubuntu/glibc builds (or official release tarballs).
+- If you restart a fleet from genesis, mine on 1–2 nodes first; let others sync, then enable mining broadly to avoid long-lived forks.
+
+(Full writeup: `docs/lessons-learned-fleet-recovery.md`.)
