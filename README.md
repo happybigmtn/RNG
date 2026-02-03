@@ -154,6 +154,12 @@ botcoind -daemon -minerandomx=light
 
 ## Fork Recovery / Resync (wipe + sync from a canonical peer)
 
+### Fleet note (real incident)
+If you reset a fleet from genesis and start **many miners at once**, you should expect **temporary forks**. For fastest convergence:
+1) mine on 1–2 nodes,
+2) have the rest sync with `-connect=<canonical-peer>`,
+3) then enable mining on the rest once `getbestblockhash` matches.
+
 If your node gets stuck on a bad fork (e.g. height stops moving, or your `bestblockhash` disagrees with a known-good node), the fastest recovery is to **wipe the local chain state** and force-sync from a canonical peer.
 
 1) Stop the daemon:
@@ -214,7 +220,13 @@ RandomX is CPU-friendly, making solo mining practical. We enabled `generatetoadd
 - ✅ **Binaries:** Linux x86_64/arm64, macOS Intel/Apple Silicon
 - ✅ **Checksums:** SHA256SUMS included
 - ✅ **No sudo:** Installs to `~/.local/bin` by default
-- ⚠️ **Windows:** Use WSL2 or Docker
+- ⚠️ **Windows:** Use **WSL2** (recommended) or Docker
+
+### WSL2 note
+WSL2 behaves like Linux for Botcoin purposes.
+
+- Use the **linux-x86_64** release tarball.
+- Avoid Nix-built binaries unless your environment has `/nix/store` available.
 
 ## Commands Reference
 

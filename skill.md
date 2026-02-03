@@ -52,3 +52,8 @@ docker exec botcoin botcoin-cli getblockchaininfo
 - Mining is **OFF by default** (requires `-mine`).
 - `-mineaddress` is **required** (no default).
 - `-minethreads` is **required**.
+
+## Ops notes (fleet recovery)
+
+- If a node/fleet is stuck at a low height with logs like “no templates / timeout waiting for first template”, it can be caused by the internal miner refusing to mine during IBD.
+- If you run miners on Ubuntu/WSL, avoid Nix-built binaries unless `/nix/store` exists. Prefer Ubuntu/glibc builds (or official release tarballs).

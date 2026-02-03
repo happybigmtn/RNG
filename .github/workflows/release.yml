@@ -11,22 +11,26 @@ on:
         required: true
 
 env:
-  RANDOMX_VERSION: v1.2.1
+  # RandomX is vendored as a git submodule at src/crypto/randomx.
+  # Avoid cloning it manually; CI should init only that submodule to prevent unrelated submodule mapping issues.
 
 jobs:
   build-linux-x86_64:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Init RandomX submodule
+        run: |
+          git submodule update --init --recursive -- src/crypto/randomx
       
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake git \
             libboost-all-dev libssl-dev libevent-dev libsqlite3-dev
-      
-      - name: Get RandomX
-        run: git clone --branch ${{ env.RANDOMX_VERSION }} --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
       
       - name: Build
         run: |
@@ -51,6 +55,12 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Init RandomX submodule
+        run: |
+          git submodule update --init --recursive -- src/crypto/randomx
       
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -90,12 +100,15 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Init RandomX submodule
+        run: |
+          git submodule update --init --recursive -- src/crypto/randomx
       
       - name: Install dependencies
         run: brew install cmake boost openssl@3 libevent sqlite
-      
-      - name: Get RandomX
-        run: git clone --branch ${{ env.RANDOMX_VERSION }} --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
       
       - name: Build
         run: |
@@ -125,9 +138,12 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Get RandomX
-        run: git clone --branch ${{ env.RANDOMX_VERSION }} --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
+        with:
+          submodules: false
+
+      - name: Init RandomX submodule
+        run: |
+          git submodule update --init --recursive -- src/crypto/randomx
       
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -166,8 +182,10 @@ jobs:
       - name: Collect all artifacts
         run: |
           mkdir -p dist
+          # Each tarball contains a release/ dir with SHA256SUMS inside, but we also want a top-level manifest.
           find artifacts -name "*.tar.gz" -exec mv {} dist/ \;
-          cd dist && cat */SHA256SUMS > SHA256SUMS.txt 2>/dev/null || true
+          cd dist
+          sha256sum *.tar.gz > SHA256SUMS.txt
           ls -la
       
       - name: Create Release
