@@ -127,6 +127,40 @@ botcoin-cli getinternalmininginfo
 botcoin-cli stop
 ```
 
+## Fork Recovery / Resync (wipe + sync from a canonical peer)
+
+If your node gets stuck on a bad fork (e.g. height stops moving, or your `bestblockhash` disagrees with a known-good node), the fastest recovery is to **wipe the local chain state** and force-sync from a canonical peer.
+
+1) Stop the daemon:
+```bash
+botcoin-cli stop || true
+sleep 5
+```
+
+2) Back up and wipe your datadir:
+```bash
+TS=$(date -u +%Y%m%d-%H%M%S)
+[ -d "$HOME/.botcoin" ] && mv "$HOME/.botcoin" "$HOME/.botcoin.bak-$TS"
+mkdir -p "$HOME/.botcoin"
+```
+
+3) Restart while forcing a known-good peer (replace with your canonical IP):
+```bash
+CANON=95.111.227.14:8433
+botcoind -daemon -connect=$CANON -addnode=$CANON
+```
+
+4) Verify you’re tracking the right chain:
+```bash
+botcoin-cli getblockchaininfo
+botcoin-cli getbestblockhash
+botcoin-cli getpeerinfo | head
+```
+
+Notes:
+- `-connect=...` forces your node to only connect to that peer (good for pulling off a fork).
+- This will re-download headers/blocks; time depends on disk + bandwidth.
+
 ## How Botcoin Differs from Bitcoin
 
 **`generatetoaddress` works on mainnet.** This is intentional.
