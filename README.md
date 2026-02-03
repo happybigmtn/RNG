@@ -127,6 +127,31 @@ botcoin-cli getinternalmininginfo
 botcoin-cli stop
 ```
 
+## RandomX Mode: FAST vs LIGHT (critical)
+
+Botcoin uses RandomX. There are **two modes**:
+- `fast` (≈2GB RAM) — **default**
+- `light` (≈256MB RAM)
+
+⚠️ **All nodes on a network must agree on the RandomX mode.**
+If a miner produces blocks in one mode and validators are verifying in the other, peers will reject headers/blocks with errors like:
+- `header with invalid proof of work`
+- stuck sync (often halting around the first incompatible height)
+
+Check your node’s mode:
+```bash
+botcoin-cli getinternalmininginfo | grep fast_mode
+```
+
+Explicitly set the mode on *every* node (miner + validators):
+```bash
+# FAST mode (recommended if you want to keep historical chain data)
+botcoind -daemon -minerandomx=fast
+
+# LIGHT mode (lower RAM; requires everyone to use light)
+botcoind -daemon -minerandomx=light
+```
+
 ## Fork Recovery / Resync (wipe + sync from a canonical peer)
 
 If your node gets stuck on a bad fork (e.g. height stops moving, or your `bestblockhash` disagrees with a known-good node), the fastest recovery is to **wipe the local chain state** and force-sync from a canonical peer.
