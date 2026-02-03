@@ -183,13 +183,23 @@ bool HeadersSyncState::ValidateAndProcessSingleHeader(const CBlockHeader& curren
 
     // Verify that the difficulty isn't growing too fast; an adversary with
     // limited hashing capability has a greater chance of producing a high
-    // work chain if they compress the work into as few blocks as possible,
-    // so don't let anyone give a chain that would violate the difficulty
-    // adjustment maximum.
-    if (!PermittedDifficultyTransition(m_consensus_params, next_height,
-                m_last_header_received.nBits, current.nBits)) {
-        LogDebug(BCLog::NET, "Initial headers sync aborted with peer=%d: invalid difficulty transition at height=%i (presync phase)\n", m_id, next_height);
-        return false;
+    // work chain if they compress the work into as few blocks as possible.
+    //
+    // IMPORTANT (Botcoin): Our mainnet enables fPowAllowMinDifficultyBlocks.
+    // Bitcoin Core's generic PermittedDifficultyTransition() anti-DoS check
+    // assumes Bitcoin-like bounds and can incorrectly reject consensus-valid
+    // chains once difficulty starts oscillating. That manifests as initial
+    // sync getting stuck at exactly MAX_HEADERS_RESULTS (=2000).
+    //
+    // We therefore skip this anti-DoS check when min-difficulty blocks are
+    // allowed, and rely on full consensus validation during
+    // ProcessNewBlockHeaders() for correctness.
+    if (!m_consensus_params.fPowAllowMinDifficultyBlocks) {
+        if (!PermittedDifficultyTransition(m_consensus_params, next_height,
+                    m_last_header_received.nBits, current.nBits)) {
+            LogDebug(BCLog::NET, "Initial headers sync aborted with peer=%d: invalid difficulty transition at height=%i (presync phase)\n", m_id, next_height);
+            return false;
+        }
     }
 
     if (next_height % m_params.commitment_period == m_commit_offset) {
