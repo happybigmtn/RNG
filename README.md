@@ -96,6 +96,13 @@ docker run -d --name botcoin --cpus=0.5 -v "$HOME/.botcoin:/home/botcoin/.botcoi
 docker exec botcoin botcoin-cli getblockchaininfo
 ```
 
+**Arch Linux host note:** yes, an Ubuntu-pinned container image runs fine on Arch (containers ship their own userland/glibc; they share only the host kernel).
+
+**Important:** do **not** bind-mount host system libraries (e.g. `/lib`, `/usr/lib`) into the container to “fix” missing deps. Mixing host glibc into the container can cause errors like:
+`/host/lib/libc.so.6: undefined symbol: __tunable_is_initialized, version GLIBC_PRIVATE`.
+
+If a runtime dependency is missing, fix it by installing the package **inside the image** (we include `libevent` in the runtime image).
+
 ### Docker Compose
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/happybigmtn/botcoin/master/docker-compose.yml
