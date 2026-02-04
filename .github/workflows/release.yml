@@ -165,19 +165,19 @@ jobs:
             ghcr.io/${{ github.repository }}:latest
 
       - name: Make GHCR package public (optional)
-        if: ${{ secrets.GHCR_PUBLISH_TOKEN != '' }}
         env:
           GH_TOKEN: ${{ secrets.GHCR_PUBLISH_TOKEN }}
-          OWNER: ${{ github.repository_owner }}
-          PKG: botcoin
         run: |
-          # Requires GHCR_PUBLISH_TOKEN (a PAT) with permission to manage package visibility.
-          echo "Setting GHCR package visibility to public for ${OWNER}/${PKG}"
-          curl -sS -X PUT \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/users/${OWNER}/packages/container/${PKG}/visibility" \
-            -d '{"visibility":"public"}'
+          if [ -n "${GH_TOKEN}" ]; then
+            echo "Setting GHCR package visibility to public..."
+            curl -sS -X PUT \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/users/${{ github.repository_owner }}/packages/container/botcoin/visibility" \
+              -d '{"visibility":"public"}'
+          else
+            echo "GHCR_PUBLISH_TOKEN not set, skipping"
+          fi
 
   release:
     needs: [build-linux-x86_64, build-linux-arm64, build-macos, docker]
