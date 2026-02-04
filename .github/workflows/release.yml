@@ -136,11 +136,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    env:
-      # If you set a PAT with `packages: write` scope as secret GHCR_PUBLISH_TOKEN,
-      # this workflow will automatically flip the pushed GHCR package to PUBLIC.
-      # (GITHUB_TOKEN can push, but cannot always change package visibility.)
-      GHCR_PUBLISH_TOKEN: ${{ secrets.GHCR_PUBLISH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -174,15 +169,13 @@ jobs:
             ghcr.io/${{ github.repository }}:latest
 
       - name: Make GHCR package public (optional)
-        if: ${{ env.GHCR_PUBLISH_TOKEN != '' }}
+        if: ${{ secrets.GHCR_PUBLISH_TOKEN != '' }}
         env:
-          GH_TOKEN: ${{ env.GHCR_PUBLISH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GHCR_PUBLISH_TOKEN }}
           OWNER: ${{ github.repository_owner }}
           PKG: botcoin
         run: |
-          # Requires a PAT in GHCR_PUBLISH_TOKEN with permission to manage packages.
-          # For user-owned packages:
-          #   PUT /users/{username}/packages/container/{package_name}/visibility
+          # Requires GHCR_PUBLISH_TOKEN (a PAT) with permission to manage package visibility.
           echo "Setting GHCR package visibility to public for ${OWNER}/${PKG}"
           curl -sS -X PUT \
             -H "Authorization: Bearer ${GH_TOKEN}" \
