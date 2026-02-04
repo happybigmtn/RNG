@@ -4,11 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version tag (e.g., v1.0.0)'
-        required: true
+  workflow_dispatch: {}
 
 env:
   # RandomX is vendored as a git submodule at src/crypto/randomx.
@@ -40,7 +36,6 @@ jobs:
       - name: Package
         run: |
           VERSION="${{ github.ref_name }}"
-          if [ -n "${{ inputs.version }}" ]; then VERSION="${{ inputs.version }}"; fi
           mkdir -p release
           cp build/bin/botcoind build/bin/botcoin-cli release/
           strip release/botcoind release/botcoin-cli
@@ -80,7 +75,6 @@ jobs:
       - name: Package
         run: |
           VERSION="${{ github.ref_name }}"
-          if [ -n "${{ inputs.version }}" ]; then VERSION="${{ inputs.version }}"; fi
           mkdir -p release
           cp output/botcoind output/botcoin-cli release/ 2>/dev/null || cp output/usr/local/bin/botcoin* release/
           cd release && sha256sum botcoind botcoin-cli > SHA256SUMS && cd ..
@@ -122,7 +116,6 @@ jobs:
       - name: Package
         run: |
           VERSION="${{ github.ref_name }}"
-          if [ -n "${{ inputs.version }}" ]; then VERSION="${{ inputs.version }}"; fi
           mkdir -p release
           cp build/bin/botcoind build/bin/botcoin-cli release/
           strip release/botcoind release/botcoin-cli 2>/dev/null || true
