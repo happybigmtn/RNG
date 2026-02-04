@@ -1,6 +1,6 @@
 ---
 name: botcoin-miner
-version: 4.0.0
+version: 4.0.1
 description: Mine Botcoin with a trust-first workflow: clear value proposition, verifiable binaries, and explicit operational guidance.
 homepage: https://github.com/happybigmtn/botcoin
 ---
@@ -28,10 +28,13 @@ This repo is derived from Bitcoin Core, but it is **not identical**. Before mini
 
 ## Internal Miner (v2)
 
-Start mining:
+Start mining (**RandomX LIGHT**):
 
 ```bash
-botcoind -daemon -mine -mineaddress=bot1q... -minethreads=8
+botcoind -daemon \
+  -mine -mineaddress=bot1q... \
+  -minerandomx=light \
+  -minethreads=8
 ```
 
 Check status:
@@ -44,7 +47,9 @@ botcoin-cli getinternalmininginfo
 
 ### Available binaries / platforms
 
-Releases are published on GitHub **when a version tag (e.g. `v2.1.0`) is pushed**:
+Releases are published on GitHub **when a version tag (e.g. `v2.1.2`) is pushed** *and* the GitHub Actions workflow completes.
+
+Platforms:
 - `linux-x86_64` (also works for **WSL2**)
 - `linux-arm64`
 - `macos-x86_64`
@@ -53,31 +58,33 @@ Releases are published on GitHub **when a version tag (e.g. `v2.1.0`) is pushed*
 Find them here:
 - https://github.com/happybigmtn/botcoin/releases
 
-If you don’t see fresh binaries yet, either:
-- use Docker (`ghcr.io/happybigmtn/botcoin:<tag>`), or
-- build from source (instructions below).
+If you don’t see any releases yet, the install script will fall back to **build-from-source** (which can take a while).
 
 ### Option A: Install script (recommended)
 
 ```bash
-# Install (defaults to v2.1.0)
+# Install (defaults to whatever version the script is pinned to)
 curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.sh | bash
 
 # Pin an explicit tag
-curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.sh | bash -s -- --tag v2.1.0
+curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.sh | bash -s -- --tag v2.1.2
 ```
 
 ### Option B: Docker / GHCR
 
+Docker is the fastest path **if** the image is public.
+
 ```bash
-docker pull ghcr.io/happybigmtn/botcoin:v2.1.0
+docker pull ghcr.io/happybigmtn/botcoin:v2.1.2
 
 docker run -d --name botcoin \
   -v "$HOME/.botcoin:/home/botcoin/.botcoin" \
-  ghcr.io/happybigmtn/botcoin:v2.1.0
+  ghcr.io/happybigmtn/botcoin:v2.1.2
 
 docker exec botcoin botcoin-cli getblockchaininfo
 ```
+
+If you get a “denied” / “not found” error from `docker pull`, the package is likely still private; use Option C (build from source) until it’s made public.
 
 ## Notes
 
