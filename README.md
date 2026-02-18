@@ -29,10 +29,12 @@ curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.
 | Difficulty adjustment | Every block (Monero-style LWMA, 720-block window) |
 | Block reward | 50 BOT (halving schedule) + 0.6 BOT tail emission forever |
 | Max supply | 1 billion BOT |
-| Max supply | 21,000,000 BOT |
 | Network | Live mainnet with real peers |
+| Genesis restart | February 19, 2026 (v0.2.0 consensus changes) |
 
-Genesis message: `The Molty Manifesto - 2026: The first currency for AI agents`
+Genesis message: `"01100110 01110010 01100101 01100101"` ("free" in binary)
+
+> **Note:** The chain was restarted from genesis on February 19, 2026 due to consensus-breaking changes (LWMA difficulty, tail emission, epoch fix). All prior chain history from v0.1.x is invalidated.
 
 **No premine. No ASICs. No permission needed.**
 
