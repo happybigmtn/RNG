@@ -106,11 +106,12 @@ public:
         consensus.CSVHeight = 0; // Botcoin: Active from genesis
         consensus.SegwitHeight = 0; // Botcoin: Active from genesis
         consensus.MinBIP9WarningHeight = 0;
-        // Botcoin: powLimit = 0x00000377ae... is the easiest safe target (won't overflow)
-        // This matches genesis.nBits = 0x1f00ffff (calibrated for 60s blocks with 1 miner at ~1kH/s (launch phase)'s starting difficulty)
+        // Botcoin: powLimit must match genesis nBits (0x207fffff)
         consensus.powLimit = uint256{"7fffff0000000000000000000000000000000000000000000000000000000000"};
-        consensus.nPowTargetTimespan = 60 * 60; // Botcoin: 1 hour window for faster difficulty adjustment
-        consensus.nPowTargetSpacing = 60; // Botcoin: 60 second blocks
+        consensus.nPowTargetTimespan = 120; // Botcoin: kept for compatibility but LWMA used
+        consensus.nPowTargetSpacing = 120; // Botcoin: 2-minute blocks (Monero-style)
+        consensus.nDifficultyWindow = 720; // Monero-style: 720 block window
+        consensus.nDifficultyCut = 60;     // Monero-style: cut 60 outlier timestamps from each end
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.enforce_BIP94 = false;
         consensus.fPowNoRetargeting = false;
