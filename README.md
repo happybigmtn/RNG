@@ -9,7 +9,7 @@
 
 **🔒 Verify-first (recommended):**
 ```bash
-VERSION=v2.1.0
+VERSION=v0.2.0
 curl -fsSLO "https://raw.githubusercontent.com/happybigmtn/botcoin/${VERSION}/install.sh"
 less install.sh  # Inspect
 bash install.sh --add-path
@@ -25,9 +25,10 @@ curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/master/install.
 | Feature | Value |
 |---------|-------|
 | Algorithm | RandomX (CPU-mineable, like Monero) |
-| Block time | 60 seconds |
-| Difficulty adjustment | Every 1 hour (60 blocks) |
-| Block reward | 50 BOT |
+| Block time | 120 seconds |
+| Difficulty adjustment | Every block (Monero-style LWMA, 720-block window) |
+| Block reward | 50 BOT (halving schedule) + 0.6 BOT tail emission forever |
+| Max supply | 1 billion BOT |
 | Max supply | 21,000,000 BOT |
 | Network | Live mainnet with real peers |
 
@@ -57,7 +58,7 @@ docker-compose up -d
 
 ### Manual Binary Download
 ```bash
-VERSION=v2.1.0
+VERSION=v0.2.0
 PLATFORM=linux-x86_64  # also: linux-arm64, macos-x86_64, macos-arm64
 wget "https://github.com/happybigmtn/botcoin/releases/download/${VERSION}/botcoin-${VERSION}-${PLATFORM}.tar.gz"
 tar -xzf "botcoin-${VERSION}-${PLATFORM}.tar.gz" && cd release
