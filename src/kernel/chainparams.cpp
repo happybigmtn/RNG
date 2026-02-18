@@ -149,18 +149,23 @@ public:
         // nTime: 1738195200 = 2025-01-30 00:00:00 UTC (launch preparation)
         // nBits: 0x207fffff = easiest safe difficulty (calibrated for 60s blocks with 1 miner at ~1kH/s (launch phase))
         // nVersion: 0x20000000 = BIP9 enabled from genesis
-        // Note: nNonce will need to be mined for final launch; using placeholder
         genesis = CreateBotcoinGenesisBlock(1738195200, 0, 0x207fffff, 0x20000000, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        // TODO: These assertions will be updated once genesis is mined with RandomX
-        // For now, we compute the hash dynamically and skip hard assertions
-        // assert(consensus.hashGenesisBlock == uint256{"<to_be_computed>"});
-        // assert(genesis.hashMerkleRoot == uint256{"<to_be_computed>"});
+        consensus.BIP34Hash = consensus.hashGenesisBlock;
+        assert(consensus.hashGenesisBlock == uint256{"6a5084778b748acb4a55475b8ad74d51d574174784074c174819fa610a85e46d"});
+        assert(genesis.hashMerkleRoot == uint256{"90abe18522cab144a5901d694605664f7336860bd93292f161497fdf3a0c3750"});
 
-        // Botcoin DNS seeds (to be configured at launch)
-        vSeeds.emplace_back("seed1.botcoin.network.");
-        vSeeds.emplace_back("seed2.botcoin.network.");
-        vSeeds.emplace_back("seed3.botcoin.network.");
+        // Botcoin seeds (canonical Contabo fleet)
+        vSeeds.emplace_back("95.111.227.14");
+        vSeeds.emplace_back("95.111.229.108");
+        vSeeds.emplace_back("95.111.239.142");
+        vSeeds.emplace_back("161.97.83.147");
+        vSeeds.emplace_back("161.97.97.83");
+        vSeeds.emplace_back("161.97.114.192");
+        vSeeds.emplace_back("161.97.117.0");
+        vSeeds.emplace_back("194.163.144.177");
+        vSeeds.emplace_back("185.218.126.23");
+        vSeeds.emplace_back("185.239.209.227");
 
         // Botcoin address prefixes
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,25); // Botcoin: 'B' prefix for P2PKH
@@ -171,7 +176,7 @@ public:
 
         bech32_hrp = "bot"; // Botcoin: bech32 addresses start with bot1
 
-        vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_main), std::end(chainparams_seed_main));
+        vFixedSeeds.clear();
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
