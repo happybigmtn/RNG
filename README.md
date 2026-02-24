@@ -106,9 +106,9 @@ rpcuser=agent
 rpcpassword=$RPCPASS
 rpcbind=127.0.0.1
 rpcallowip=127.0.0.1
-addnode=95.111.227.14:8433
-addnode=95.111.229.108:8433
-addnode=161.97.83.147:8433
+addnode=185.218.126.23:8433
+addnode=95.111.239.142:8433
+addnode=161.97.114.192:8433
 EOF
 ```
 
@@ -181,7 +181,7 @@ mkdir -p "$HOME/.botcoin"
 
 3) Restart while forcing a known-good peer (replace with your canonical IP):
 ```bash
-CANON=95.111.227.14:8433
+CANON=185.218.126.23:8433
 botcoind -daemon -connect=$CANON -addnode=$CANON
 ```
 
