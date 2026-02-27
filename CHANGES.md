@@ -1,6 +1,6 @@
-# Botcoin: Changes from Bitcoin Core v29
+# RNG: Changes from Bitcoin Core v29
 
-This document lists every modification made to Bitcoin Core to create Botcoin.
+This document lists every modification made to Bitcoin Core to create RNG.
 Full transparency. No hidden changes. Verify everything yourself.
 
 ## Repository
@@ -18,7 +18,7 @@ Full transparency. No hidden changes. Verify everything yourself.
 // Before (Bitcoin)
 consensus.nPowTargetSpacing = 10 * 60; // 10 minutes
 
-// After (Botcoin)
+// After (RNG)
 consensus.nPowTargetSpacing = 60; // 60 seconds
 ```
 
@@ -29,7 +29,7 @@ consensus.nPowTargetSpacing = 60; // 60 seconds
 // Before (Bitcoin)
 consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // 2 weeks
 
-// After (Botcoin)
+// After (RNG)
 consensus.nPowTargetTimespan = 60 * 60; // 1 hour (60 blocks)
 ```
 
@@ -66,17 +66,17 @@ pchMessageStart[3] = 0x0e;
 ### 6. Address Prefixes
 
 **File:** `src/kernel/chainparams.cpp`
-- Mainnet: `bot1` (bech32)
-- Testnet: `tbot1` (bech32)
+- Mainnet: `rng1` (bech32)
+- Testnet: `trng1` (bech32)
 - Regtest: `bcrt1` (unchanged)
 
 ## Branding Changes (Non-Consensus)
 
 | File | Change |
 |------|--------|
-| `CMakeLists.txt` | CLIENT_NAME: "Bitcoin Core" → "Botcoin Core" |
-| `src/clientversion.cpp` | UA_NAME: "Satoshi" → "Botcoin" |
-| `src/qt/bitcoinunits.cpp` | Unit names: BTC → BOT |
+| `CMakeLists.txt` | CLIENT_NAME: "Bitcoin Core" → "RNG Core" |
+| `src/clientversion.cpp` | UA_NAME: "Satoshi" → "RNG" |
+| `src/qt/bitcoinunits.cpp` | Unit names: BTC → RNG |
 
 ## What Was NOT Changed
 
@@ -92,8 +92,8 @@ pchMessageStart[3] = 0x0e;
 
 ```bash
 # Clone and verify yourself
-git clone https://github.com/happybigmtn/botcoin
-cd botcoin
+git clone https://github.com/happybigmtn/rng
+cd rng
 
 # Compare against Bitcoin Core v29
 git remote add bitcoin https://github.com/bitcoin/bitcoin

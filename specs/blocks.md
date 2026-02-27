@@ -1,7 +1,7 @@
 # Block Structure Specification
 
 ## Topic
-The structure, size limits, and validation rules for Botcoin blocks.
+The structure, size limits, and validation rules for RNG blocks.
 
 ## Behavioral Requirements
 

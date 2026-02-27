@@ -1,9 +1,9 @@
-// Copyright (c) 2024-present The Botcoin developers
+// Copyright (c) 2024-present The RNG developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BOTCOIN_CRYPTO_RANDOMX_HASH_H
-#define BOTCOIN_CRYPTO_RANDOMX_HASH_H
+#ifndef RNG_CRYPTO_RANDOMX_HASH_H
+#define RNG_CRYPTO_RANDOMX_HASH_H
 
 #include <uint256.h>
 
@@ -14,13 +14,13 @@
 #include <span>
 
 /**
- * RandomX proof-of-work hash computation for Botcoin.
+ * RandomX proof-of-work hash computation for RNG.
  *
  * RandomX is a CPU-optimized, ASIC-resistant PoW algorithm that uses:
  * - 2080 MiB dataset for fast mode (mining)
  * - 256 MiB cache for light mode (validation)
  *
- * Botcoin currently uses the default RandomX ARGON_SALT ("RandomX\x03").
+ * RNG currently uses the default RandomX ARGON_SALT ("RandomX\x03").
  *
  * Seed hash rotation:
  * - Epoch: 2048 blocks (~34 hours at 60s blocks)
@@ -214,4 +214,4 @@ constexpr uint64_t RANDOMX_EPOCH_LENGTH = 2048;
  */
 constexpr uint64_t RANDOMX_EPOCH_LAG = 64;
 
-#endif // BOTCOIN_CRYPTO_RANDOMX_HASH_H
+#endif // RNG_CRYPTO_RANDOMX_HASH_H

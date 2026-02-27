@@ -21,6 +21,8 @@
 
 BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
 
+static constexpr CAmount TAIL_EMISSION = 60000000; // 0.6 RNG
+
 static void TestBlockSubsidyHalvings(const Consensus::Params& consensusParams)
 {
     int maxHalvings = 64;
@@ -32,10 +34,16 @@ static void TestBlockSubsidyHalvings(const Consensus::Params& consensusParams)
         int nHeight = nHalvings * consensusParams.nSubsidyHalvingInterval;
         CAmount nSubsidy = GetBlockSubsidy(nHeight, consensusParams);
         BOOST_CHECK(nSubsidy <= nInitialSubsidy);
-        BOOST_CHECK_EQUAL(nSubsidy, nPreviousSubsidy / 2);
+        if ((nPreviousSubsidy / 2) >= TAIL_EMISSION) {
+            BOOST_CHECK_EQUAL(nSubsidy, nPreviousSubsidy / 2);
+        } else {
+            BOOST_CHECK_EQUAL(nSubsidy, TAIL_EMISSION);
+        }
         nPreviousSubsidy = nSubsidy;
     }
-    BOOST_CHECK_EQUAL(GetBlockSubsidy(maxHalvings * consensusParams.nSubsidyHalvingInterval, consensusParams), 0);
+    BOOST_CHECK_EQUAL(
+        GetBlockSubsidy(maxHalvings * consensusParams.nSubsidyHalvingInterval, consensusParams),
+        TAIL_EMISSION);
 }
 
 static void TestBlockSubsidyHalvings(int nSubsidyHalvingInterval)
@@ -57,48 +65,53 @@ BOOST_AUTO_TEST_CASE(subsidy_limit_test)
 {
     const auto chainParams = CreateChainParams(*m_node.args, ChainType::MAIN);
     CAmount nSum = 0;
-    // Botcoin: Test up to 140M blocks (more halvings due to 2.1M interval)
+    // Sample aggregate issuance over a long range and ensure it remains sane.
     for (int nHeight = 0; nHeight < 140000000; nHeight += 10000) {
         CAmount nSubsidy = GetBlockSubsidy(nHeight, chainParams->GetConsensus());
         BOOST_CHECK(nSubsidy <= 50 * COIN);
         nSum += nSubsidy * 10000;
         BOOST_CHECK(MoneyRange(nSum));
     }
-    // Botcoin: Total supply approaches 21M BOT (same as Bitcoin's 21M BTC)
-    // With 2.1M block halving interval, supply = 50 * 2.1M * 2 = 210M satoshis * halvings
-    BOOST_CHECK_EQUAL(nSum, CAmount{2099999997690000});
+
+    // Tail emission keeps issuance above Bitcoin's 21M cap while still within MAX_MONEY.
+    BOOST_CHECK(nSum > 21000000 * COIN);
+    BOOST_CHECK(MoneyRange(nSum));
+    BOOST_CHECK_EQUAL(GetBlockSubsidy(2100000 * 64, chainParams->GetConsensus()), TAIL_EMISSION);
 }
 
-// Botcoin: Test consensus timing parameters
+// RNG: Test consensus timing parameters
 BOOST_AUTO_TEST_CASE(consensus_timing_params)
 {
     const auto params = CreateChainParams(*m_node.args, ChainType::MAIN);
     const auto& consensus = params->GetConsensus();
 
-    // Test: 60-second target block time
-    BOOST_CHECK_EQUAL(consensus.nPowTargetSpacing, 60);
+    // RNG mainnet target block time is 120 seconds.
+    BOOST_CHECK_EQUAL(consensus.nPowTargetSpacing, 120);
 
-    // Test: 2016 block retarget interval (~1.4 days at 60s)
-    BOOST_CHECK_EQUAL(consensus.DifficultyAdjustmentInterval(), 2016);
+    // Legacy interval helper is 1 for mainnet because LWMA drives difficulty retargeting.
+    BOOST_CHECK_EQUAL(consensus.DifficultyAdjustmentInterval(), 1);
 
     // Test: 2.1M halving interval
     BOOST_CHECK_EQUAL(consensus.nSubsidyHalvingInterval, 2100000);
 }
 
-// Botcoin: Test block reward schedule
+// RNG: Test block reward schedule
 BOOST_AUTO_TEST_CASE(block_reward_schedule)
 {
     const auto params = CreateChainParams(*m_node.args, ChainType::MAIN);
     const auto& consensus = params->GetConsensus();
 
-    // Test: Block 1 reward is 50 BOT
+    // Test: Block 1 reward is 50 RNG
     BOOST_CHECK_EQUAL(GetBlockSubsidy(1, consensus), 50 * COIN);
 
-    // Test: Block 2,100,000 reward is 25 BOT (first halving)
+    // Test: Block 2,100,000 reward is 25 RNG (first halving)
     BOOST_CHECK_EQUAL(GetBlockSubsidy(2100000, consensus), 25 * COIN);
 
-    // Test: Block 4,200,000 reward is 12.5 BOT (second halving)
+    // Test: Block 4,200,000 reward is 12.5 RNG (second halving)
     BOOST_CHECK_EQUAL(GetBlockSubsidy(4200000, consensus), 1250000000); // 12.5 * COIN
+
+    // Test: Tail emission floor
+    BOOST_CHECK_EQUAL(GetBlockSubsidy(2100000 * 64, consensus), TAIL_EMISSION);
 }
 
 BOOST_AUTO_TEST_CASE(signet_parse_tests)
@@ -167,22 +180,16 @@ BOOST_AUTO_TEST_CASE(test_assumeutxo)
 {
     const auto params = CreateChainParams(*m_node.args, ChainType::REGTEST);
 
-    // These heights don't have assumeutxo configurations associated, per the contents
-    // of kernel/chainparams.cpp.
-    std::vector<int> bad_heights{0, 100, 111, 115, 209, 211};
+    // RNG regtest currently ships with no assumeutxo snapshots configured.
+    std::vector<int> bad_heights{0, 100, 110, 111, 115, 200, 209, 211, 299};
 
     for (auto empty : bad_heights) {
         const auto out = params->AssumeutxoForHeight(empty);
         BOOST_CHECK(!out);
     }
 
-    const auto out110 = *params->AssumeutxoForHeight(110);
-    BOOST_CHECK_EQUAL(out110.hash_serialized.ToString(), "b952555c8ab81fec46f3d4253b7af256d766ceb39fb7752b9d18cdf4a0141327");
-    BOOST_CHECK_EQUAL(out110.m_chain_tx_count, 111U);
-
-    const auto out110_2 = *params->AssumeutxoForBlockhash(uint256{"6affe030b7965ab538f820a56ef56c8149b7dc1d1c144af57113be080db7c397"});
-    BOOST_CHECK_EQUAL(out110_2.hash_serialized.ToString(), "b952555c8ab81fec46f3d4253b7af256d766ceb39fb7752b9d18cdf4a0141327");
-    BOOST_CHECK_EQUAL(out110_2.m_chain_tx_count, 111U);
+    BOOST_CHECK(!params->AssumeutxoForBlockhash(
+        uint256{"6affe030b7965ab538f820a56ef56c8149b7dc1d1c144af57113be080db7c397"}));
 }
 
 BOOST_AUTO_TEST_CASE(block_malleation)

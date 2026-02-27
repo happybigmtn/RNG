@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 Botcoin Core developers
+# Copyright (c) 2026 RNG Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test Botcoin network identification.
+"""Test RNG network identification.
 
 This test verifies:
-- Network magic bytes are correct for Botcoin (mainnet 0xB07C010E; regtest 0xB07C0000)
+- Network magic bytes are correct for RNG (mainnet 0xB07C010E; regtest 0xB07C0000)
 - Protocol version is 70100
-- User agent contains "Botcoin" and does NOT contain "Bitcoin" or "Satoshi"
+- User agent contains "RNG" and does NOT contain "Bitcoin" or "Satoshi"
 """
 
 from test_framework.test_framework import BitcoinTestFramework
@@ -31,9 +31,9 @@ class NetworkMagicTest(BitcoinTestFramework):
         # Get network info
         info = node.getnetworkinfo()
 
-        # Test: User agent should contain Botcoin and NOT contain Bitcoin/Satoshi
+        # Test: User agent should contain RNG and NOT contain Bitcoin/Satoshi
         self.log.info(f"User agent: {info['subversion']}")
-        assert 'Botcoin' in info['subversion'], f"Expected 'Botcoin' in {info['subversion']}"
+        assert 'RNG' in info['subversion'], f"Expected 'RNG' in {info['subversion']}"
         assert 'Bitcoin' not in info['subversion'], "Should not contain 'Bitcoin'"
         assert 'Satoshi' not in info['subversion'], "Should not contain 'Satoshi'"
 

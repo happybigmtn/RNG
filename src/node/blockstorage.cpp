@@ -145,7 +145,7 @@ bool BlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, s
                 pindexNew->nStatus        = diskindex.nStatus;
                 pindexNew->nTx            = diskindex.nTx;
 
-                // Botcoin uses RandomX PoW. The block hash (SHA256) is not the PoW hash.
+                // RNG uses RandomX PoW. The block hash (SHA256) is not the PoW hash.
                 // CheckBlockProofOfWork computes the RandomX hash using the seed hash.
                 // For blocks loaded from disk, we trust they were validated on receipt.
                 // Skip PoW check here - blocks will be validated during chain activation.
@@ -1038,7 +1038,7 @@ bool BlockManager::ReadBlock(CBlock& block, const FlatFilePos& pos, const std::o
 
     const auto block_hash{block.GetHash()};
 
-    // Botcoin uses RandomX PoW. The SHA256 block hash is NOT the PoW hash.
+    // RNG uses RandomX PoW. The SHA256 block hash is NOT the PoW hash.
     // Blocks stored on disk were already validated when received.
     // Skip redundant PoW check here - CheckBlockProofOfWork would need
     // the seed hash which requires block index context we don't have here.

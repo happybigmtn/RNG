@@ -1,4 +1,4 @@
-// Copyright (c) 2024-present The Botcoin developers
+// Copyright (c) 2024-present The RNG developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(randomx_known_vector)
     std::vector<uint8_t> header(80, 0);
 
     // Use genesis seed
-    uint256 seed = Hash(std::string("Botcoin Genesis Seed"));
+    uint256 seed = Hash(std::string("RNG Genesis Seed"));
 
     // Compute hash twice
     uint256 hash1 = RandomXHash(header, seed);
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(randomx_different_input)
 {
     std::vector<uint8_t> header1(80, 0);
     std::vector<uint8_t> header2(80, 1); // Different content
-    uint256 seed = Hash(std::string("Botcoin Genesis Seed"));
+    uint256 seed = Hash(std::string("RNG Genesis Seed"));
 
     uint256 hash1 = RandomXHash(header1, seed);
     uint256 hash2 = RandomXHash(header2, seed);
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(randomx_different_seed)
 BOOST_AUTO_TEST_CASE(randomx_light_mode)
 {
     std::vector<uint8_t> header(80, 0);
-    uint256 seed = Hash(std::string("Botcoin Genesis Seed"));
+    uint256 seed = Hash(std::string("RNG Genesis Seed"));
 
     // Light mode should work (uses 256 MiB cache)
     uint256 hash = RandomXHashLight(header, seed);
@@ -104,41 +104,26 @@ BOOST_AUTO_TEST_CASE(randomx_light_mode)
 // =============================================================================
 
 /**
- * Test: Seed height follows spec (every 2048 blocks + 64 lag)
- * Acceptance: Seed rotates correctly per specs/randomx.md.
- *
- * Spec:
- * - Epoch: 2048 blocks
- * - Lag: 64 blocks
- * - Key changes when: block_height >= EPOCH_LENGTH + LAG
- * - Seed block: floor((block_height - LAG) / EPOCH_LENGTH) * EPOCH_LENGTH
+ * Test: Seed height remains fixed at genesis for all heights.
+ * Acceptance: RNG's fixed-seed policy returns height 0 always.
  */
 BOOST_AUTO_TEST_CASE(seed_height_calculation)
 {
-    // Before first rotation: seed height = 0
-    // Blocks 0 through 2111 use genesis seed (height 0)
+    // RNG intentionally uses a fixed genesis seed for chain-stability.
     BOOST_CHECK_EQUAL(GetRandomXSeedHeight(0), 0ULL);
     BOOST_CHECK_EQUAL(GetRandomXSeedHeight(64), 0ULL);
     BOOST_CHECK_EQUAL(GetRandomXSeedHeight(2047), 0ULL);
     BOOST_CHECK_EQUAL(GetRandomXSeedHeight(2048), 0ULL);
     BOOST_CHECK_EQUAL(GetRandomXSeedHeight(2111), 0ULL);
-
-    // First rotation at 2048 + 64 = 2112
-    // Blocks 2112+ use seed from block 2048
-    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(2112), 2048ULL);
-    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(4000), 2048ULL);
-    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(4095), 2048ULL);
-    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(4096), 2048ULL);
-    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(4159), 2048ULL);
-
-    // Second rotation at 4096 + 64 = 4160
-    // Blocks 4160+ use seed from block 4096
-    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(4160), 4096ULL);
-    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(6000), 4096ULL);
-    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(6207), 4096ULL);
-
-    // Third rotation at 6144 + 64 = 6208
-    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(6208), 6144ULL);
+    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(2112), 0ULL);
+    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(4000), 0ULL);
+    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(4095), 0ULL);
+    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(4096), 0ULL);
+    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(4159), 0ULL);
+    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(4160), 0ULL);
+    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(6000), 0ULL);
+    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(6207), 0ULL);
+    BOOST_CHECK_EQUAL(GetRandomXSeedHeight(6208), 0ULL);
 }
 
 /**
@@ -193,7 +178,7 @@ BOOST_AUTO_TEST_CASE(get_block_pow_hash)
     header.nBits = 0x207fffff;
     header.nNonce = 0;
 
-    uint256 seed = Hash(std::string("Botcoin Genesis Seed"));
+    uint256 seed = Hash(std::string("RNG Genesis Seed"));
     uint256 pow_hash = GetBlockPoWHash(header, seed);
 
     // Hash should not be zero
@@ -211,12 +196,12 @@ BOOST_AUTO_TEST_CASE(get_block_pow_hash)
 
 /**
  * Test: Genesis seed hash computation
- * Acceptance: Genesis seed is SHA256("Botcoin Genesis Seed").
+ * Acceptance: Genesis seed is SHA256("RNG Genesis Seed").
  */
 BOOST_AUTO_TEST_CASE(genesis_seed_hash)
 {
     // GetRandomXSeedHash with null pindex should return genesis seed
-    uint256 expected = Hash(std::string("Botcoin Genesis Seed"));
+    uint256 expected = Hash(std::string("RNG Genesis Seed"));
     uint256 actual = GetRandomXSeedHash(nullptr);
 
     BOOST_CHECK_EQUAL(actual, expected);

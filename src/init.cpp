@@ -3,7 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 
 #include <init.h>
 
@@ -690,7 +690,7 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-blockmintxfee=<amt>", strprintf("Set lowest fee rate (in %s/kvB) for transactions to be included in block creation. (default: %s)", CURRENCY_UNIT, FormatMoney(DEFAULT_BLOCK_MIN_TX_FEE)), ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
     argsman.AddArg("-blockversion=<n>", "Override block version to test forking scenarios", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::BLOCK_CREATION);
 
-    // Internal miner options (Botcoin-specific)
+    // Internal miner options (RNG-specific)
     argsman.AddArg("-mine", "Enable internal multi-threaded mining (default: false)", ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
     argsman.AddArg("-mineaddress=<addr>", "Address to receive mining rewards (REQUIRED if -mine is set)", ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
     argsman.AddArg("-minethreads=<n>", "Number of mining threads (REQUIRED if -mine is set)", ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
@@ -2264,8 +2264,8 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         if (!IsValidDestination(dest)) {
             return InitError(strprintf(_("Invalid -mineaddress: %s"), mine_address));
         }
-        if (mine_address.substr(0, 4) != "bot1") {
-            return InitError(_("mineaddress must be a bech32 address starting with bot1"));
+        if (mine_address.substr(0, 4) != "rng1") {
+            return InitError(_("mineaddress must be a bech32 address starting with rng1"));
         }
         if (mine_threads <= 0) {
             return InitError(_("minethreads must be set and > 0 when -mine is enabled"));

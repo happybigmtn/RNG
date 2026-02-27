@@ -1,4 +1,4 @@
-// Copyright (c) 2024-present The Botcoin developers
+// Copyright (c) 2024-present The RNG developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -210,7 +210,7 @@ void InternalMiner::UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIn
 
 bool InternalMiner::ShouldMine() const
 {
-    // NOTE(Botcoin): Do NOT gate mining on IBD.
+    // NOTE(RNG): Do NOT gate mining on IBD.
     //
     // Bitcoin Core treats a tip older than DEFAULT_MAX_TIP_AGE as "IBD", which is
     // sensible for a mature network but can deadlock a young chain: if block

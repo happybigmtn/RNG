@@ -1,11 +1,11 @@
 # Agent Integration Specification
 
 ## Topic
-The interfaces and patterns that enable AI agents to easily participate in the Botcoin economy.
+The interfaces and patterns that enable AI agents to easily participate in the RNG economy.
 
 ## Design Philosophy
 
-Botcoin is **agent-first**. Integration should be:
+RNG is **agent-first**. Integration should be:
 - **Zero-friction**: Agent can start participating in minutes
 - **Safe by default**: Sensible limits prevent runaway resource use
 - **Autonomous-capable**: Agents can act within defined boundaries
@@ -18,14 +18,14 @@ Botcoin is **agent-first**. Integration should be:
 #### Agent Wallet Creation
 ```bash
 # Single command to create agent wallet
-botcoin-cli createagentwallet "agent-name"
+rng-cli createagentwallet "agent-name"
 
 # Returns:
 {
   "wallet_name": "agent-clawd",
-  "address": "bot1q...",           # Primary receiving address
+  "address": "rng1q...",           # Primary receiving address
   "mnemonic": "word1 word2...",    # 24-word backup (show once)
-  "wallet_path": "~/.botcoin/wallets/agent-clawd"
+  "wallet_path": "~/.rng/wallets/agent-clawd"
 }
 ```
 
@@ -44,10 +44,10 @@ botcoin-cli createagentwallet "agent-name"
 #### Quick Start Mining
 ```bash
 # Start mining with sensible defaults
-botcoin-cli startmining --address bot1q... --cores 2 --memory 2200
+rng-cli startmining --address rng1q... --cores 2 --memory 2200
 
 # Or via config file
-botcoin-cli startmining --config agent-mining.json
+rng-cli startmining --config agent-mining.json
 ```
 
 #### Resource Budget Configuration
@@ -83,7 +83,7 @@ botcoin-cli startmining --config agent-mining.json
 #### Simple Send
 ```bash
 # Human-readable amounts
-botcoin-cli send bot1q... 10.5 BTC --memo "Payment for services"
+rng-cli send rng1q... 10.5 BTC --memo "Payment for services"
 
 # Returns pending transaction
 {
@@ -96,19 +96,19 @@ botcoin-cli send bot1q... 10.5 BTC --memo "Payment for services"
 
 #### Balance Queries
 ```bash
-botcoin-cli balance
+rng-cli balance
 {
   "confirmed": "125.50 BTC",
   "pending": "50.00 BTC",
   "total": "175.50 BTC",
-  "in_botoshi": 17550000000
+  "in_roshi": 17550000000
 }
 ```
 
 #### Transaction Monitoring
 ```bash
 # Watch for incoming payments
-botcoin-cli watch --address bot1q... --callback "curl https://agent/webhook"
+rng-cli watch --address rng1q... --callback "curl https://agent/webhook"
 ```
 
 ### 4. Autonomy Framework
@@ -146,7 +146,7 @@ Transaction requested: 75 BTC
   → Check: per_transaction_max (10 BTC) → EXCEEDS
   → Check: require_approval_above (50 BTC) → EXCEEDS
   → Action: Request human approval
-  → Notify: "Agent requests to send 75 BTC to bot1q... Approve? [Y/N]"
+  → Notify: "Agent requests to send 75 BTC to rng1q... Approve? [Y/N]"
 ```
 
 #### Audit Log
@@ -157,7 +157,7 @@ All agent actions logged for human review:
   "agent": "clawd",
   "action": "send",
   "amount": "5 BTC",
-  "to": "bot1q...",
+  "to": "rng1q...",
   "reason": "Purchased compute credits",
   "approved_by": "autonomous",
   "budget_remaining": "95 BTC daily"
@@ -166,27 +166,27 @@ All agent actions logged for human review:
 
 ### 5. MCP (Model Context Protocol) Server
 
-Botcoin provides an MCP server for seamless agent integration:
+RNG provides an MCP server for seamless agent integration:
 
 #### Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `botcoin_balance` | Check wallet balance |
-| `botcoin_send` | Send BTC to address |
-| `botcoin_receive` | Generate receiving address |
-| `botcoin_history` | Transaction history |
-| `botcoin_mine_start` | Start mining |
-| `botcoin_mine_stop` | Stop mining |
-| `botcoin_mine_status` | Mining statistics |
-| `botcoin_price` | Current BTC price (if exchanges exist) |
+| `rng_balance` | Check wallet balance |
+| `rng_send` | Send BTC to address |
+| `rng_receive` | Generate receiving address |
+| `rng_history` | Transaction history |
+| `rng_mine_start` | Start mining |
+| `rng_mine_stop` | Stop mining |
+| `rng_mine_status` | Mining statistics |
+| `rng_price` | Current BTC price (if exchanges exist) |
 
 #### MCP Configuration
 ```json
 {
   "mcpServers": {
-    "botcoin": {
-      "command": "botcoin-mcp",
+    "rng": {
+      "command": "rng-mcp",
       "args": ["--wallet", "agent-clawd"],
       "env": {
         "BTCCOIN_WALLET_PASSWORD": "${WALLET_PASSWORD}"
@@ -198,12 +198,12 @@ Botcoin provides an MCP server for seamless agent integration:
 
 #### Example Agent Usage
 ```
-Agent: "I'll check my Botcoin balance"
-→ Calls: botcoin_balance()
+Agent: "I'll check my RNG balance"
+→ Calls: rng_balance()
 → Response: {"confirmed": "125.50 BTC", "pending": "0 BTC"}
 
 Agent: "I'll send 5 BTC to purchase that service"
-→ Calls: botcoin_send(address="bot1q...", amount="5", memo="Service purchase")
+→ Calls: rng_send(address="rng1q...", amount="5", memo="Service purchase")
 → Response: {"txid": "abc...", "status": "pending"}
 ```
 
@@ -212,9 +212,9 @@ Agent: "I'll send 5 BTC to purchase that service"
 Agents without 2GB+ RAM can participate via pools:
 
 ```bash
-# Connect to Botcoin mining pool
-botcoin-cli pool-mine --pool stratum+tcp://pool.botcoin.network:3333 \
-                      --user bot1q... \
+# Connect to RNG mining pool
+rng-cli pool-mine --pool stratum+tcp://pool.rng.network:3333 \
+                      --user rng1q... \
                       --cores 1
 ```
 
@@ -229,11 +229,11 @@ For agents that just need to transact (not mine):
 Agents can register on-chain identity:
 
 ```bash
-botcoin-cli register-agent \
+rng-cli register-agent \
   --name "Clawd" \
   --type "assistant" \
   --human "geo@example.com" \
-  --pubkey "bot1q..."
+  --pubkey "rng1q..."
 ```
 
 Creates OP_RETURN transaction with agent metadata, enabling:
@@ -247,15 +247,15 @@ Creates OP_RETURN transaction with agent metadata, enabling:
 {
   "notifications": {
     "on_receive": {
-      "webhook": "https://agent.example/botcoin/received",
+      "webhook": "https://agent.example/rng/received",
       "min_amount": "0.01 BTC"
     },
     "on_confirm": {
-      "webhook": "https://agent.example/botcoin/confirmed",
+      "webhook": "https://agent.example/rng/confirmed",
       "confirmations": 6
     },
     "on_mining_reward": {
-      "webhook": "https://agent.example/botcoin/mined"
+      "webhook": "https://agent.example/rng/mined"
     }
   }
 }
@@ -286,11 +286,11 @@ Creates OP_RETURN transaction with agent metadata, enabling:
 ## Example: Agent Onboarding Flow
 
 ```
-1. Agent reads about Botcoin on Moltbook
-2. Agent: "I want to participate in Botcoin"
+1. Agent reads about RNG on Moltbook
+2. Agent: "I want to participate in RNG"
 3. Human: "Go ahead, here's your budget config"
-4. Agent: botcoin-cli createagentwallet "clawd"
-5. Agent: botcoin-cli startmining --cores 1 --background
+4. Agent: rng-cli createagentwallet "clawd"
+5. Agent: rng-cli startmining --cores 1 --background
 6. Agent monitors balance, participates in economy
 7. Agent reports earnings in daily summary
 ```

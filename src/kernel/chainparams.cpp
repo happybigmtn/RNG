@@ -64,26 +64,26 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
 }
 
 /**
- * Build the Botcoin genesis block.
+ * Build the RNG genesis block.
  *
  * Key differences from Bitcoin:
- * - Coinbase message: "The Molty Manifesto - 2026: The first currency for AI agents"
+ * - Coinbase message: "Life is a random number generator"
  * - Output is OP_RETURN (provably unspendable, not just by convention)
- * - Reward is still 50 BOT but cannot be spent
+ * - Reward is still 50 RNG but cannot be spent
  * - Version is 0x20000000 (BIP9 enabled from genesis)
  *
  * The OP_RETURN output contains a commitment to the genesis identity,
  * making the genesis reward provably unspendable while preserving
- * the 21M supply calculations (genesis 50 BOT is effectively burned).
+ * the 21M supply calculations (genesis 50 RNG is effectively burned).
  */
-static CBlock CreateBotcoinGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
+static CBlock CreateRNGGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
-    // Botcoin genesis message per specs/genesis.md
-    const char* pszTimestamp = "The Molty Manifesto - 2026: The first currency for AI agents";
+    // RNG genesis message
+    const char* pszTimestamp = "Life is a random number generator";
 
     // OP_RETURN makes output provably unspendable (unlike Bitcoin's OP_CHECKSIG)
-    // The commitment is a hash of "Botcoin Genesis" for identity binding
-    const CScript genesisOutputScript = CScript() << OP_RETURN << "426f74636f696e2047656e65736973"_hex;  // "Botcoin Genesis" in hex
+    // Identity commitment: "RNG Genesis"
+    const CScript genesisOutputScript = CScript() << OP_RETURN << "524e472047656e65736973"_hex;
 
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward);
 }
@@ -97,19 +97,19 @@ public:
         m_chain_type = ChainType::MAIN;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
-        consensus.nSubsidyHalvingInterval = 2100000; // Botcoin: 2.1M blocks (~4 years at 60s blocks)
-        // Botcoin: No script flag exceptions - clean chain from genesis
-        consensus.BIP34Height = 0; // Botcoin: All BIPs active from genesis
+        consensus.nSubsidyHalvingInterval = 2100000; // RNG: 2.1M blocks (~4 years at 60s blocks)
+        // RNG: No script flag exceptions - clean chain from genesis
+        consensus.BIP34Height = 0; // RNG: All BIPs active from genesis
         consensus.BIP34Hash = uint256{}; // Will be set to genesis hash
-        consensus.BIP65Height = 0; // Botcoin: Active from genesis
-        consensus.BIP66Height = 0; // Botcoin: Active from genesis
-        consensus.CSVHeight = 0; // Botcoin: Active from genesis
-        consensus.SegwitHeight = 0; // Botcoin: Active from genesis
+        consensus.BIP65Height = 0; // RNG: Active from genesis
+        consensus.BIP66Height = 0; // RNG: Active from genesis
+        consensus.CSVHeight = 0; // RNG: Active from genesis
+        consensus.SegwitHeight = 0; // RNG: Active from genesis
         consensus.MinBIP9WarningHeight = 0;
-        // Botcoin: powLimit must match genesis nBits (0x207fffff)
+        // RNG: powLimit must match genesis nBits (0x207fffff)
         consensus.powLimit = uint256{"7fffff0000000000000000000000000000000000000000000000000000000000"};
-        consensus.nPowTargetTimespan = 120; // Botcoin: kept for compatibility but LWMA used
-        consensus.nPowTargetSpacing = 120; // Botcoin: 2-minute blocks (Monero-style)
+        consensus.nPowTargetTimespan = 120; // RNG: kept for compatibility but LWMA used
+        consensus.nPowTargetSpacing = 120; // RNG: 2-minute blocks (Monero-style)
         consensus.nDifficultyWindow = 720; // Monero-style: 720 block window
         consensus.nDifficultyCut = 60;     // Monero-style: cut 60 outlier timestamps from each end
         consensus.fPowAllowMinDifficultyBlocks = true;
@@ -122,7 +122,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].threshold = 1815; // 90%
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].period = 2016;
 
-        // Botcoin: Taproot always active from genesis (BIPs 340-342)
+        // RNG: Taproot always active from genesis (BIPs 340-342)
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -130,33 +130,33 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1815; // 90%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
-        consensus.nMinimumChainWork = uint256{}; // Botcoin: New chain, no minimum work yet
-        consensus.defaultAssumeValid = uint256{}; // Botcoin: New chain, no assumed valid block yet
+        consensus.nMinimumChainWork = uint256{}; // RNG: New chain, no minimum work yet
+        consensus.defaultAssumeValid = uint256{}; // RNG: New chain, no assumed valid block yet
 
         /**
-         * Botcoin network magic bytes: 0xB07C010E
-         * Spells "BOT" with checksum - distinguishes from Bitcoin network.
+         * RNG network magic bytes: 0xB07C010E
+         * Spells "RNG" with checksum - distinguishes from Bitcoin network.
          */
         pchMessageStart[0] = 0xb0;
         pchMessageStart[1] = 0x7c;
         pchMessageStart[2] = 0x01;
         pchMessageStart[3] = 0x0e;
-        nDefaultPort = 8433; // Botcoin: P2P port
+        nDefaultPort = 8433; // RNG: P2P port
         nPruneAfterHeight = 100000;
         m_assumed_blockchain_size = 810;
         m_assumed_chain_state_size = 14;
 
-        // Botcoin genesis block with Molty Manifesto message
+        // RNG genesis block with the canonical RNG message
         // nTime: 1738195200 = 2025-01-30 00:00:00 UTC (launch preparation)
         // nBits: 0x207fffff = easiest safe difficulty (calibrated for 60s blocks with 1 miner at ~1kH/s (launch phase))
         // nVersion: 0x20000000 = BIP9 enabled from genesis
-        genesis = CreateBotcoinGenesisBlock(1738195200, 0, 0x207fffff, 0x20000000, 50 * COIN);
+        genesis = CreateRNGGenesisBlock(1738195200, 0, 0x207fffff, 0x20000000, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
         consensus.BIP34Hash = consensus.hashGenesisBlock;
-        assert(consensus.hashGenesisBlock == uint256{"6a5084778b748acb4a55475b8ad74d51d574174784074c174819fa610a85e46d"});
-        assert(genesis.hashMerkleRoot == uint256{"90abe18522cab144a5901d694605664f7336860bd93292f161497fdf3a0c3750"});
+        assert(consensus.hashGenesisBlock == uint256{"83a6a482f85dc88c07387980067e9b61e5d8f61818aae9106b6bbc496d36ace4"});
+        assert(genesis.hashMerkleRoot == uint256{"b713a92ad8104e5a1650d02f96df9cb18bd6a39a222829ba4e4b5e79e4de7232"});
 
-        // Botcoin seeds (canonical Contabo fleet)
+        // RNG seeds (canonical Contabo fleet)
         vSeeds.emplace_back("95.111.227.14");
         vSeeds.emplace_back("95.111.229.108");
         vSeeds.emplace_back("95.111.239.142");
@@ -168,31 +168,31 @@ public:
         vSeeds.emplace_back("185.218.126.23");
         vSeeds.emplace_back("185.239.209.227");
 
-        // Botcoin address prefixes
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,25); // Botcoin: 'B' prefix for P2PKH
+        // RNG address prefixes
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,25); // RNG: 'B' prefix for P2PKH
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);  // 'A' prefix for P2SH (same as Bitcoin)
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,128);
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E}; // bpub
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4}; // bprv
 
-        bech32_hrp = "bot"; // Botcoin: bech32 addresses start with bot1
+        bech32_hrp = "rng"; // RNG: bech32 addresses start with rng1
 
         vFixedSeeds.clear();
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
 
-        // Botcoin: No assumeutxo data yet for new chain
+        // RNG: No assumeutxo data yet for new chain
         m_assumeutxo_data = {};
 
-        // Botcoin: New chain, no transaction data yet
+        // RNG: New chain, no transaction data yet
         chainTxData = ChainTxData{
             .nTime    = 0,
             .tx_count = 0,
             .dTxRate  = 0.0,
         };
 
-        // Botcoin: Default header sync params
+        // RNG: Default header sync params
         m_headers_sync_params = HeadersSyncParams{
             .commitment_period = 632,
             .redownload_buffer_size = 15009,
@@ -209,19 +209,19 @@ public:
         m_chain_type = ChainType::TESTNET;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
-        consensus.nSubsidyHalvingInterval = 2100000; // Botcoin: Same as mainnet
-        // Botcoin: No script flag exceptions - clean chain from genesis
-        consensus.BIP34Height = 0; // Botcoin: All BIPs active from genesis
+        consensus.nSubsidyHalvingInterval = 2100000; // RNG: Same as mainnet
+        // RNG: No script flag exceptions - clean chain from genesis
+        consensus.BIP34Height = 0; // RNG: All BIPs active from genesis
         consensus.BIP34Hash = uint256{};
         consensus.BIP65Height = 0;
         consensus.BIP66Height = 0;
         consensus.CSVHeight = 0;
         consensus.SegwitHeight = 0;
         consensus.MinBIP9WarningHeight = 0;
-        // Botcoin: powLimit = 0x00000377ae... is the easiest safe target (won't overflow)
+        // RNG: powLimit = 0x00000377ae... is the easiest safe target (won't overflow)
         consensus.powLimit = uint256{"7fffff0000000000000000000000000000000000000000000000000000000000"};
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 60; // Botcoin: 60 second blocks
+        consensus.nPowTargetSpacing = 60; // RNG: 60 second blocks
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.enforce_BIP94 = false;
         consensus.fPowNoRetargeting = false;
@@ -232,7 +232,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].threshold = 1512; // 75%
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].period = 2016;
 
-        // Botcoin: Taproot always active from genesis (BIPs 340-342)
+        // RNG: Taproot always active from genesis (BIPs 340-342)
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -240,48 +240,48 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1512; // 75%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
-        consensus.nMinimumChainWork = uint256{}; // Botcoin: New chain
-        consensus.defaultAssumeValid = uint256{}; // Botcoin: New chain
+        consensus.nMinimumChainWork = uint256{}; // RNG: New chain
+        consensus.defaultAssumeValid = uint256{}; // RNG: New chain
 
-        // Botcoin testnet network magic: 0xB07C7E57 (BOT TEST)
+        // RNG testnet network magic: 0xB07C7E57 (RNG TEST)
         pchMessageStart[0] = 0xb0;
         pchMessageStart[1] = 0x7c;
         pchMessageStart[2] = 0x7e;
         pchMessageStart[3] = 0x57;
-        nDefaultPort = 18433; // Botcoin testnet P2P port
+        nDefaultPort = 18433; // RNG testnet P2P port
         nPruneAfterHeight = 1000;
         m_assumed_blockchain_size = 240;
         m_assumed_chain_state_size = 19;
 
-        // Botcoin testnet genesis - same message, different nonce
-        genesis = CreateBotcoinGenesisBlock(1738195200, 1, 0x207fffff, 0x20000000, 50 * COIN);
+        // RNG testnet genesis - same message, different nonce
+        genesis = CreateRNGGenesisBlock(1738195200, 1, 0x207fffff, 0x20000000, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
         // TODO: Assertions updated after genesis mining
 
         vFixedSeeds.clear();
         vSeeds.clear();
-        // Botcoin testnet seeds (to be configured at launch)
-        vSeeds.emplace_back("testnet-seed1.botcoin.network.");
-        vSeeds.emplace_back("testnet-seed2.botcoin.network.");
+        // RNG testnet seeds (to be configured at launch)
+        vSeeds.emplace_back("testnet-seed1.rng.network.");
+        vSeeds.emplace_back("testnet-seed2.rng.network.");
 
-        // Botcoin testnet uses same prefixes as Bitcoin testnet for familiarity
+        // RNG testnet uses same prefixes as Bitcoin testnet for familiarity
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111); // 't' prefix
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196); // 's' prefix
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239); // 'c' prefix
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF}; // tpub
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94}; // tprv
 
-        bech32_hrp = "tbot"; // Botcoin testnet: tbot1...
+        bech32_hrp = "trng"; // RNG testnet: trng1...
 
-        vFixedSeeds.clear(); // Botcoin: No fixed seeds yet
+        vFixedSeeds.clear(); // RNG: No fixed seeds yet
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
 
-        // Botcoin testnet: No assumeutxo data yet
+        // RNG testnet: No assumeutxo data yet
         m_assumeutxo_data = {};
 
-        // Botcoin testnet: New chain, no transaction data yet
+        // RNG testnet: New chain, no transaction data yet
         chainTxData = ChainTxData{
             .nTime    = 0,
             .tx_count = 0,
@@ -304,18 +304,18 @@ public:
         m_chain_type = ChainType::TESTNET4;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
-        consensus.nSubsidyHalvingInterval = 2100000; // Botcoin: Same as mainnet
-        consensus.BIP34Height = 0; // Botcoin: All BIPs active from genesis
+        consensus.nSubsidyHalvingInterval = 2100000; // RNG: Same as mainnet
+        consensus.BIP34Height = 0; // RNG: All BIPs active from genesis
         consensus.BIP34Hash = uint256{};
         consensus.BIP65Height = 0;
         consensus.BIP66Height = 0;
         consensus.CSVHeight = 0;
         consensus.SegwitHeight = 0;
         consensus.MinBIP9WarningHeight = 0;
-        // Botcoin: powLimit = 0x00000377ae... is the easiest safe target (won't overflow)
+        // RNG: powLimit = 0x00000377ae... is the easiest safe target (won't overflow)
         consensus.powLimit = uint256{"7fffff0000000000000000000000000000000000000000000000000000000000"};
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 60; // Botcoin: 60 second blocks
+        consensus.nPowTargetSpacing = 60; // RNG: 60 second blocks
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.enforce_BIP94 = true;
         consensus.fPowNoRetargeting = false;
@@ -335,48 +335,48 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1512; // 75%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
-        consensus.nMinimumChainWork = uint256{}; // Botcoin: New chain
-        consensus.defaultAssumeValid = uint256{}; // Botcoin: New chain
+        consensus.nMinimumChainWork = uint256{}; // RNG: New chain
+        consensus.defaultAssumeValid = uint256{}; // RNG: New chain
 
-        // Botcoin testnet4 network magic
+        // RNG testnet4 network magic
         pchMessageStart[0] = 0xb0;
         pchMessageStart[1] = 0x7c;
         pchMessageStart[2] = 0x74;  // 't' for testnet4
         pchMessageStart[3] = 0x34;  // '4' for testnet4
-        nDefaultPort = 48433; // Botcoin testnet4 P2P port
+        nDefaultPort = 48433; // RNG testnet4 P2P port
         nPruneAfterHeight = 1000;
         m_assumed_blockchain_size = 22;
         m_assumed_chain_state_size = 2;
 
-        // Botcoin testnet4 genesis - same Molty Manifesto message
-        genesis = CreateBotcoinGenesisBlock(1738195200, 2, 0x207fffff, 0x20000000, 50 * COIN);
+        // RNG testnet4 genesis - same RNG message
+        genesis = CreateRNGGenesisBlock(1738195200, 2, 0x207fffff, 0x20000000, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
         // TODO: Assertions updated after genesis mining
 
         vFixedSeeds.clear();
         vSeeds.clear();
-        // Botcoin testnet4 seeds (to be configured at launch)
-        vSeeds.emplace_back("testnet4-seed1.botcoin.network.");
-        vSeeds.emplace_back("testnet4-seed2.botcoin.network.");
+        // RNG testnet4 seeds (to be configured at launch)
+        vSeeds.emplace_back("testnet4-seed1.rng.network.");
+        vSeeds.emplace_back("testnet4-seed2.rng.network.");
 
-        // Botcoin testnet4 uses same testnet prefixes
+        // RNG testnet4 uses same testnet prefixes
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111); // 't' prefix
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196); // 's' prefix
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239); // 'c' prefix
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF}; // tpub
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94}; // tprv
 
-        bech32_hrp = "tbot"; // Botcoin testnet4: tbot1...
+        bech32_hrp = "trng"; // RNG testnet4: trng1...
 
-        vFixedSeeds.clear(); // Botcoin: No fixed seeds yet
+        vFixedSeeds.clear(); // RNG: No fixed seeds yet
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
 
-        // Botcoin testnet4: No assumeutxo data yet
+        // RNG testnet4: No assumeutxo data yet
         m_assumeutxo_data = {};
 
-        // Botcoin testnet4: New chain, no transaction data yet
+        // RNG testnet4: New chain, no transaction data yet
         chainTxData = ChainTxData{
             .nTime    = 0,
             .tx_count = 0,
@@ -438,15 +438,15 @@ public:
         m_chain_type = ChainType::SIGNET;
         consensus.signet_blocks = true;
         consensus.signet_challenge.assign(bin.begin(), bin.end());
-        consensus.nSubsidyHalvingInterval = 2100000; // Botcoin: Same as mainnet
-        consensus.BIP34Height = 0; // Botcoin: All BIPs active from genesis
+        consensus.nSubsidyHalvingInterval = 2100000; // RNG: Same as mainnet
+        consensus.BIP34Height = 0; // RNG: All BIPs active from genesis
         consensus.BIP34Hash = uint256{};
         consensus.BIP65Height = 0;
         consensus.BIP66Height = 0;
         consensus.CSVHeight = 0;
         consensus.SegwitHeight = 0;
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 60; // Botcoin: 60 second blocks
+        consensus.nPowTargetSpacing = 60; // RNG: 60 second blocks
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.enforce_BIP94 = false;
         consensus.fPowNoRetargeting = false;
@@ -473,25 +473,25 @@ public:
         uint256 hash = h.GetHash();
         std::copy_n(hash.begin(), 4, pchMessageStart.begin());
 
-        nDefaultPort = 38433; // Botcoin signet P2P port
+        nDefaultPort = 38433; // RNG signet P2P port
         nPruneAfterHeight = 1000;
 
-        // Botcoin signet genesis - same Molty Manifesto message
-        genesis = CreateBotcoinGenesisBlock(1738195200, 3, 0x207fffff, 0x20000000, 50 * COIN);
+        // RNG signet genesis - same RNG message
+        genesis = CreateRNGGenesisBlock(1738195200, 3, 0x207fffff, 0x20000000, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
         // TODO: Assertions updated after genesis mining
 
-        // Botcoin signet: No assumeutxo data yet
+        // RNG signet: No assumeutxo data yet
         m_assumeutxo_data = {};
 
-        // Botcoin signet uses same testnet prefixes
+        // RNG signet uses same testnet prefixes
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111); // 't' prefix
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196); // 's' prefix
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239); // 'c' prefix
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF}; // tpub
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94}; // tprv
 
-        bech32_hrp = "tbot"; // Botcoin signet: tbot1...
+        bech32_hrp = "trng"; // RNG signet: trng1...
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
@@ -517,7 +517,7 @@ public:
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 150; // Keep short for regtest
-        consensus.BIP34Height = 0; // Botcoin: All BIPs active from genesis
+        consensus.BIP34Height = 0; // RNG: All BIPs active from genesis
         consensus.BIP34Hash = uint256();
         consensus.BIP65Height = 0;
         consensus.BIP66Height = 0;
@@ -526,7 +526,7 @@ public:
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = uint256{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
         consensus.nPowTargetTimespan = 24 * 60 * 60; // one day
-        consensus.nPowTargetSpacing = 60; // Botcoin: 60 second blocks
+        consensus.nPowTargetSpacing = 60; // RNG: 60 second blocks
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.enforce_BIP94 = opts.enforce_bip94;
         consensus.fPowNoRetargeting = true;
@@ -538,7 +538,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].threshold = 108; // 75%
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].period = 144;
 
-        // Botcoin: Taproot always active from genesis
+        // RNG: Taproot always active from genesis
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -549,12 +549,12 @@ public:
         consensus.nMinimumChainWork = uint256{};
         consensus.defaultAssumeValid = uint256{};
 
-        // Botcoin regtest network magic: 0xB07C0000
+        // RNG regtest network magic: 0xB07C0000
         pchMessageStart[0] = 0xb0;
         pchMessageStart[1] = 0x7c;
         pchMessageStart[2] = 0x00;
         pchMessageStart[3] = 0x00;
-        nDefaultPort = 18544; // Botcoin regtest P2P port
+        nDefaultPort = 18544; // RNG regtest P2P port
         nPruneAfterHeight = opts.fastprune ? 100 : 1000;
         m_assumed_blockchain_size = 0;
         m_assumed_chain_state_size = 0;
@@ -585,10 +585,10 @@ public:
             consensus.vDeployments[deployment_pos].min_activation_height = version_bits_params.min_activation_height;
         }
 
-        // Botcoin regtest genesis - minimal difficulty for instant mining
+        // RNG regtest genesis - minimal difficulty for instant mining
         // nBits: 0x207fffff = very easy target for testing
         // nNonce: 1 = valid RandomX nonce producing hash below target
-        genesis = CreateBotcoinGenesisBlock(1738195200, 1, 0x207fffff, 0x20000000, 50 * COIN);
+        genesis = CreateRNGGenesisBlock(1738195200, 1, 0x207fffff, 0x20000000, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
@@ -598,7 +598,7 @@ public:
         fDefaultConsistencyChecks = true;
         m_is_mockable_chain = true;
 
-        // Botcoin: Clear assumeutxo data - new chain with different genesis
+        // RNG: Clear assumeutxo data - new chain with different genesis
         // TODO: Regenerate assumeutxo data after chain stabilizes
         m_assumeutxo_data = {};
 
@@ -608,14 +608,14 @@ public:
             .dTxRate = 0.001, // Set a non-zero rate to make it testable
         };
 
-        // Botcoin regtest uses same testnet prefixes
+        // RNG regtest uses same testnet prefixes
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111); // 't' prefix
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196); // 's' prefix
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239); // 'c' prefix
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF}; // tpub
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94}; // tprv
 
-        bech32_hrp = "tbot"; // Botcoin regtest: tbot1...
+        bech32_hrp = "trng"; // RNG regtest: trng1...
 
         // Copied from Testnet4.
         m_headers_sync_params = HeadersSyncParams{

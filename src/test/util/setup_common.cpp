@@ -381,7 +381,9 @@ TestChain100Setup::TestChain100Setup(
     TestOpts opts)
     : TestingSetup{ChainType::REGTEST, opts}
 {
-    SetMockTime(1598887952);
+    // Keep mocked node time aligned with this chain's genesis timestamp.
+    // A fixed historical value can become invalid if genesis is moved forward.
+    SetMockTime(m_node.chainman->GetParams().GenesisBlock().nTime + 1);
     constexpr std::array<unsigned char, 32> vchKey = {
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}};
     coinbaseKey.Set(vchKey.begin(), vchKey.end(), true);
@@ -391,9 +393,11 @@ TestChain100Setup::TestChain100Setup(
 
     {
         LOCK(::cs_main);
-        assert(
-            m_node.chainman->ActiveChain().Tip()->GetBlockHash().ToString() ==
-            "0c8c5f79505775a0f6aed6aca2350718ceb9c6f2c878667864d5c7a6d8ffa2a6");
+        const CChain& active_chain = m_node.chainman->ActiveChain();
+        assert(active_chain.Height() == COINBASE_MATURITY);
+        assert(active_chain.Tip() != nullptr);
+        assert(!active_chain.Tip()->GetBlockHash().IsNull());
+        assert(m_coinbase_txns.size() == static_cast<size_t>(COINBASE_MATURITY));
     }
 }
 

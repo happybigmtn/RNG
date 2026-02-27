@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Botcoin binaries and generate checksums
+# Build RNG binaries and generate checksums
 # Run this on the target architecture (x86_64 Linux)
 
 set -e
@@ -7,7 +7,7 @@ set -e
 VERSION="${1:-$(git describe --tags --always 2>/dev/null || echo "dev")}"
 OUTDIR="release-$VERSION"
 
-echo "Building Botcoin $VERSION..."
+echo "Building RNG $VERSION..."
 
 # Ensure RandomX is present
 if [ ! -d "src/crypto/randomx" ]; then
@@ -27,22 +27,22 @@ cmake --build build -j$(nproc)
 mkdir -p "$OUTDIR"
 
 # Copy binaries
-cp build/bin/botcoind "$OUTDIR/"
-cp build/bin/botcoin-cli "$OUTDIR/"
+cp build/bin/rngd "$OUTDIR/"
+cp build/bin/rng-cli "$OUTDIR/"
 
 # Strip binaries (smaller size)
-strip "$OUTDIR/botcoind" "$OUTDIR/botcoin-cli"
+strip "$OUTDIR/rngd" "$OUTDIR/rng-cli"
 
 # Generate checksums
 cd "$OUTDIR"
-sha256sum botcoind botcoin-cli > SHA256SUMS
+sha256sum rngd rng-cli > SHA256SUMS
 cat SHA256SUMS
 
 # Create tarball
 cd ..
-tar -czvf "botcoin-$VERSION-linux-x86_64.tar.gz" "$OUTDIR"
-sha256sum "botcoin-$VERSION-linux-x86_64.tar.gz" >> "$OUTDIR/SHA256SUMS"
+tar -czvf "rng-$VERSION-linux-x86_64.tar.gz" "$OUTDIR"
+sha256sum "rng-$VERSION-linux-x86_64.tar.gz" >> "$OUTDIR/SHA256SUMS"
 
 echo ""
-echo "✅ Release built: botcoin-$VERSION-linux-x86_64.tar.gz"
+echo "✅ Release built: rng-$VERSION-linux-x86_64.tar.gz"
 echo "📋 Checksums in: $OUTDIR/SHA256SUMS"

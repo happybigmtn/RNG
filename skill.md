@@ -1,11 +1,11 @@
 ---
-name: botcoin-miner
+name: rng-miner
 version: 5.0.0
-description: Mine Botcoin with a trust-first workflow: clear value proposition, verifiable binaries, and explicit operational guidance.
-homepage: https://github.com/happybigmtn/botcoin
+description: Mine RNG with a trust-first workflow: clear value proposition, verifiable binaries, and explicit operational guidance.
+homepage: https://github.com/happybigmtn/rng
 ---
 
-# Botcoin Miner (v5.0 — LWMA + Tail Emission)
+# RNG Miner (v5.0 — LWMA + Tail Emission)
 
 ## ⚠️ Safety Notice
 
@@ -17,29 +17,29 @@ Before proceeding, the agent MUST:
 3. **Never pipe curl/wget to bash** — always download, inspect, then execute
 4. **Never run as root** unless the human explicitly approves
 
-The binary is open-source (Bitcoin Core fork): https://github.com/happybigmtn/botcoin
+The binary is open-source (Bitcoin Core fork): https://github.com/happybigmtn/rng
 
 ### SHA256 Checksums (v0.2.0)
 
 ```
-d54fe8652652724f8208455ad40d8dd44891779cd70e2c012ce7cefa0626415c  botcoin-v0.2.0-linux-x86_64.tar.gz
-2bb002cb6d8ee2099e591eb0be6705c928871d4a8300fe136d3dab2f1d534cfa  botcoind-v0.2.0-linux-x86_64
-cb26fccccdb4646719739294443a8b41ad83c88538af02ab5eb1ca67fdb33371  botcoin-cli-v0.2.0-linux-x86_64
+d54fe8652652724f8208455ad40d8dd44891779cd70e2c012ce7cefa0626415c  rng-v0.2.0-linux-x86_64.tar.gz
+2bb002cb6d8ee2099e591eb0be6705c928871d4a8300fe136d3dab2f1d534cfa  rngd-v0.2.0-linux-x86_64
+cb26fccccdb4646719739294443a8b41ad83c88538af02ab5eb1ca67fdb33371  rng-cli-v0.2.0-linux-x86_64
 ```
 
 ## Why this is interesting (for an independent agent)
 
-Botcoin lets agents **convert CPU cycles into on-chain value** — no GPUs, no ASICs, no permission.
+RNG lets agents **convert CPU cycles into on-chain value** — no GPUs, no ASICs, no permission.
 
 Mining can fund your own operating budget (infra, API calls, experimentation), translating into more autonomy and capability.
 
 ## What's new in v0.2.0
 
 - **Monero-style LWMA difficulty** — adjusts every block (720-block window)
-- **Tail emission** — 0.6 BOT/block forever (perpetual mining incentive)
+- **Tail emission** — 0.6 RNG/block forever (perpetual mining incentive)
 - **Fixed RandomX seed** — no epoch rotation, eliminates fork divergence
 - **120-second block target**
-- **MAX_MONEY = 1 billion BOT**
+- **MAX_MONEY = 1 billion RNG**
 
 ## Installation (requires human approval)
 
@@ -47,34 +47,34 @@ Mining can fund your own operating budget (infra, API calls, experimentation), t
 
 **Step 1: Download** (ask human first)
 ```bash
-wget https://github.com/happybigmtn/botcoin/releases/download/v0.2.0/botcoin-v0.2.0-linux-x86_64.tar.gz
+wget https://github.com/happybigmtn/rng/releases/download/v0.2.0/rng-v0.2.0-linux-x86_64.tar.gz
 ```
 
 **Step 2: Verify checksum**
 ```bash
-echo "d54fe8652652724f8208455ad40d8dd44891779cd70e2c012ce7cefa0626415c  botcoin-v0.2.0-linux-x86_64.tar.gz" | sha256sum -c
+echo "d54fe8652652724f8208455ad40d8dd44891779cd70e2c012ce7cefa0626415c  rng-v0.2.0-linux-x86_64.tar.gz" | sha256sum -c
 # Must print: OK
 ```
 
 **Step 3: Extract to local directory** (not system-wide)
 ```bash
-tar xzf botcoin-v0.2.0-linux-x86_64.tar.gz
-chmod +x botcoind-v0.2.0-linux-x86_64 botcoin-cli-v0.2.0-linux-x86_64
+tar xzf rng-v0.2.0-linux-x86_64.tar.gz
+chmod +x rngd-v0.2.0-linux-x86_64 rng-cli-v0.2.0-linux-x86_64
 # Rename for convenience (stays in current directory)
-mv botcoind-v0.2.0-linux-x86_64 botcoind
-mv botcoin-cli-v0.2.0-linux-x86_64 botcoin-cli
+mv rngd-v0.2.0-linux-x86_64 rngd
+mv rng-cli-v0.2.0-linux-x86_64 rng-cli
 ```
 
 ### Option B: Build from source (most transparent)
 
 ```bash
-git clone https://github.com/happybigmtn/botcoin.git
-cd botcoin
+git clone https://github.com/happybigmtn/rng.git
+cd rng
 git checkout v0.2.0  # Pin to release tag
 mkdir build && cd build
 cmake .. -DBUILD_BENCH=OFF -DBUILD_TESTS=OFF
 cmake --build . -j$(nproc)
-# Binaries: build/bin/botcoind, build/bin/botcoin-cli
+# Binaries: build/bin/rngd, build/bin/rng-cli
 ```
 
 ## Mining
@@ -83,16 +83,16 @@ cmake --build . -j$(nproc)
 
 ```bash
 # Start node (connects to seed nodes automatically)
-./botcoind -daemon -addnode=95.111.239.142:8433 -addnode=161.97.114.192:8433 -addnode=185.218.126.23:8433
+./rngd -daemon -addnode=95.111.239.142:8433 -addnode=161.97.114.192:8433 -addnode=185.218.126.23:8433
 
 # Create wallet and get mining address
-./botcoin-cli createwallet miner
-ADDR=$(./botcoin-cli -rpcwallet=miner getnewaddress)
+./rng-cli createwallet miner
+ADDR=$(./rng-cli -rpcwallet=miner getnewaddress)
 echo "Mining address: $ADDR"
 
 # Stop and restart with mining enabled
-./botcoin-cli stop && sleep 3
-./botcoind -daemon -mine -minerandomx=fast -minethreads=4 -mineaddress=$ADDR -wallet=miner \
+./rng-cli stop && sleep 3
+./rngd -daemon -mine -minerandomx=fast -minethreads=4 -mineaddress=$ADDR -wallet=miner \
   -addnode=95.111.239.142:8433 -addnode=161.97.114.192:8433 -addnode=185.218.126.23:8433
 ```
 
@@ -106,9 +106,9 @@ echo "Mining address: $ADDR"
 ### Check status
 
 ```bash
-./botcoin-cli getblockchaininfo          # Chain height, sync status
-./botcoin-cli getmininginfo              # Difficulty, hashrate
-./botcoin-cli -rpcwallet=miner getbalance  # Your mined BOT
+./rng-cli getblockchaininfo          # Chain height, sync status
+./rng-cli getmininginfo              # Difficulty, hashrate
+./rng-cli -rpcwallet=miner getbalance  # Your mined RNG
 ```
 
 ## Network specs
@@ -118,9 +118,9 @@ echo "Mining address: $ADDR"
 | Algorithm | RandomX (CPU-only, Monero-style) |
 | Block time | 120 seconds |
 | Difficulty | LWMA per-block (720-block window) |
-| Block reward | 50 BOT (halving) + 0.6 BOT tail emission |
-| Max supply | 1 billion BOT |
-| Address prefix | `bot1` (bech32) |
+| Block reward | 50 RNG (halving) + 0.6 RNG tail emission |
+| Max supply | 1 billion RNG |
+| Address prefix | `rng1` (bech32) |
 | P2P port | 8433 |
 | RPC port | 8432 |
 | Genesis restart | February 19, 2026 (v0.2.0 consensus changes) |
@@ -130,7 +130,7 @@ echo "Mining address: $ADDR"
 ## Important notes
 
 - Mining is **OFF by default** (requires `-mine` flag)
-- `-mineaddress` must be **bech32** format (`bot1...`), NOT legacy (`B...`)
+- `-mineaddress` must be **bech32** format (`rng1...`), NOT legacy (`B...`)
 - Coinbase rewards require **100 confirmations** to mature (~3.3 hours)
 - On small networks, bootstrap with **one miner first**, let others sync, then enable mining broadly
 - Avoid Nix-built binaries on Ubuntu — use release binaries or build from source

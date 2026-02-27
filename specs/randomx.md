@@ -1,12 +1,12 @@
 # RandomX Proof-of-Work Specification
 
 ## Topic
-The proof-of-work algorithm that secures the Botcoin blockchain using CPU-optimized hashing.
+The proof-of-work algorithm that secures the RNG blockchain using CPU-optimized hashing.
 
 ## Behavioral Requirements
 
 ### Algorithm Selection
-Botcoin uses **RandomX** instead of Bitcoin's SHA-256d because:
+RNG uses **RandomX** instead of Bitcoin's SHA-256d because:
 - CPU-optimized: AI agents run on standard servers, not ASICs
 - ASIC-resistant: Random code execution prevents specialized hardware
 - Memory-hard: Large dataset prevents GPU advantage
@@ -28,7 +28,7 @@ RandomX requires a "key" to initialize its dataset. This key MUST:
 - Not be miner-selectable (to prevent ASIC optimization)
 - Derive from blockchain data
 
-**Botcoin seed rotation (following Monero pattern):**
+**RNG seed rotation (following Monero pattern):**
 - Epoch: **2048 blocks** (~34 hours at 60s blocks)
 - Lag: **64 blocks** (~1 hour) - allows nodes to pre-compute next dataset
 - Key changes when: `block_height % 2048 == 64`
@@ -37,9 +37,9 @@ RandomX requires a "key" to initialize its dataset. This key MUST:
 
 ### RandomX Configuration
 
-Botcoin currently uses **default RandomX parameters**:
+RNG currently uses **default RandomX parameters**:
 
-| Parameter | Default | Botcoin | Purpose |
+| Parameter | Default | RNG | Purpose |
 |-----------|---------|---------|---------|
 | `RANDOMX_ARGON_SALT` | `"RandomX\x03"` | `"RandomX\x03"` | Standard RandomX salt |
 
@@ -83,7 +83,7 @@ Based on official RandomX benchmarks (fast mode):
 
 ## Acceptance Criteria
 
-1. [ ] RandomX library compiles and links with Botcoin
+1. [ ] RandomX library compiles and links with RNG
 2. [ ] Block validation uses RandomX hash (not SHA-256d)
 3. [ ] Valid RandomX proof-of-work is accepted
 4. [ ] Invalid RandomX proof-of-work is rejected
@@ -105,7 +105,7 @@ Based on official RandomX benchmarks (fast mode):
 - Verify light mode validation on memory-constrained system (256 MiB)
 - Verify fast mode requires ~2 GiB memory allocation
 - Test with different CPU architectures (x86-64, ARM64 if available)
-- Verify Botcoin blocks rejected by Monero nodes (different salt)
+- Verify RNG blocks rejected by Monero nodes (different salt)
 
 ## References
 

@@ -126,6 +126,7 @@ class TestNode():
         # spam debug.log.
         self.args = self.binaries.node_argv(need_ipc=ipcbind) + [
             f"-datadir={self.datadir_path}",
+            f"-conf={self.bitcoinconf}",
             "-logtimemicros",
             "-debug",
             "-debugexclude=libevent",

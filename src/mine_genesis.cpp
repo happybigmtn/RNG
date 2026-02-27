@@ -13,7 +13,7 @@ extern "C" {
 #include "crypto/randomx/src/randomx.h"
 }
 
-// Botcoin genesis seed: SHA256("Botcoin Genesis Seed")
+// RNG genesis seed: SHA256("RNG Genesis Seed")
 // Precomputed: c7da9c30fb211702bf3f7e42f605f2168d131ee6fe36b9f621e4cd732464f3bd
 const uint8_t GENESIS_SEED[32] = {
     0xc7, 0xda, 0x9c, 0x30, 0xfb, 0x21, 0x17, 0x02,

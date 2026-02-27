@@ -1,12 +1,12 @@
-# Botcoin Installer for Windows
-# Run in PowerShell: irm https://raw.githubusercontent.com/happybigmtn/botcoin/main/install.ps1 | iex
+# RNG Installer for Windows
+# Run in PowerShell: irm https://raw.githubusercontent.com/happybigmtn/rng/main/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
 
-$Version = if ($env:BOTCOIN_VERSION) { $env:BOTCOIN_VERSION } else { "v1.0.0" }
-$InstallDir = if ($env:BOTCOIN_INSTALL_DIR) { $env:BOTCOIN_INSTALL_DIR } else { "$env:LOCALAPPDATA\Botcoin" }
-$DataDir = if ($env:BOTCOIN_DATA_DIR) { $env:BOTCOIN_DATA_DIR } else { "$env:APPDATA\Botcoin" }
-$Repo = "happybigmtn/botcoin"
+$Version = if ($env:RNG_VERSION) { $env:RNG_VERSION } else { "v1.0.0" }
+$InstallDir = if ($env:RNG_INSTALL_DIR) { $env:RNG_INSTALL_DIR } else { "$env:LOCALAPPDATA\RNG" }
+$DataDir = if ($env:RNG_DATA_DIR) { $env:RNG_DATA_DIR } else { "$env:APPDATA\RNG" }
+$Repo = "happybigmtn/rng"
 $GithubUrl = "https://github.com/$Repo"
 
 function Write-Info { Write-Host "[INFO] $args" -ForegroundColor Blue }
@@ -16,7 +16,7 @@ function Write-Err { Write-Host "[ERROR] $args" -ForegroundColor Red; exit 1 }
 
 Write-Host ""
 Write-Host "╔══════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║  Botcoin Installer for Windows           ║" -ForegroundColor Cyan
+Write-Host "║  RNG Installer for Windows           ║" -ForegroundColor Cyan
 Write-Host "║  The cryptocurrency for AI agents        ║" -ForegroundColor Cyan
 Write-Host "╚══════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
@@ -38,7 +38,7 @@ Write-Host "    curl -fsSL https://raw.githubusercontent.com/$Repo/main/install.
 Write-Host ""
 Write-Host "  Option 2: Use Docker Desktop for Windows" -ForegroundColor White
 Write-Host "    docker pull ghcr.io/${Repo}:${Version}" -ForegroundColor Gray
-Write-Host "    docker run -d --name botcoin --cpus=0.5 ghcr.io/${Repo}:${Version}" -ForegroundColor Gray
+Write-Host "    docker run -d --name rng --cpus=0.5 ghcr.io/${Repo}:${Version}" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Option 3: Build with MSYS2 (advanced)" -ForegroundColor White
 Write-Host "    # Install MSYS2 from https://www.msys2.org/" -ForegroundColor Gray

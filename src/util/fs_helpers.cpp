@@ -5,7 +5,7 @@
 
 #include <util/fs_helpers.h>
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 
 #include <logging.h>
 #include <sync.h>

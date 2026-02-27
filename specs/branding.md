@@ -1,45 +1,45 @@
 # Branding Specification
 
 ## Topic
-The user-facing identity of Botcoin software, ensuring consistent naming throughout.
+The user-facing identity of RNG software, ensuring consistent naming throughout.
 
 ## Behavioral Requirements
 
 ### Product Name
-- **Full name**: Botcoin Core
-- **Currency name**: Botcoin
+- **Full name**: RNG Core
+- **Currency name**: RNG
 - **Ticker symbol**: BTC
-- **Smallest unit**: botoshi (1 BTC = 100,000,000 botoshi)
+- **Smallest unit**: roshi (1 BTC = 100,000,000 roshi)
 
 ### Binary Names
 Users interact with these executables:
 | Binary | Purpose |
 |--------|---------|
-| `botcoind` | Full node daemon |
-| `botcoin-cli` | Command-line RPC client |
-| `botcoin-qt` | GUI wallet (optional) |
-| `botcoin-tx` | Transaction utility |
-| `botcoin-wallet` | Wallet utility |
+| `rngd` | Full node daemon |
+| `rng-cli` | Command-line RPC client |
+| `rng-qt` | GUI wallet (optional) |
+| `rng-tx` | Transaction utility |
+| `rng-wallet` | Wallet utility |
 
 ### Data Directory
-Default locations where Botcoin stores data:
+Default locations where RNG stores data:
 | OS | Path |
 |----|------|
-| Linux | `~/.botcoin/` |
-| macOS | `~/Library/Application Support/Botcoin/` |
-| Windows | `%APPDATA%\Botcoin\` |
+| Linux | `~/.rng/` |
+| macOS | `~/Library/Application Support/RNG/` |
+| Windows | `%APPDATA%\RNG\` |
 
 ### Configuration
-- Config file: `botcoin.conf`
-- PID file: `botcoind.pid`
+- Config file: `rng.conf`
+- PID file: `rngd.pid`
 
 ### Version Identity
-- Version string: `Botcoin Core version v0.1.0`
-- User agent: `/Botcoin:0.1.0/`
-- Protocol: Botcoin protocol
+- Version string: `RNG Core version v0.1.0`
+- User agent: `/RNG:0.1.0/`
+- Protocol: RNG protocol
 
 ### User-Facing Text
-All user-visible text must reference "Botcoin":
+All user-visible text must reference "RNG":
 - Help messages (`--help`)
 - Error messages
 - RPC responses
@@ -50,24 +50,24 @@ All user-visible text must reference "Botcoin":
 Users must never see "Bitcoin" in normal operation:
 - No "BTC" in amount displays
 - No "bitcoin" in paths or filenames
-- No "satoshi" in unit names (use "botoshi")
+- No "satoshi" in unit names (use "roshi")
 
 ## Acceptance Criteria
 
-1. [ ] `botcoind --version` shows "Botcoin Core"
-2. [ ] `botcoind --help` contains no "Bitcoin" references
-3. [ ] Default data directory is `~/.botcoin` (Linux)
-4. [ ] Config file is `botcoin.conf`
-5. [ ] All RPC help text references "Botcoin"
+1. [ ] `rngd --version` shows "RNG Core"
+2. [ ] `rngd --help` contains no "Bitcoin" references
+3. [ ] Default data directory is `~/.rng` (Linux)
+4. [ ] Config file is `rng.conf`
+5. [ ] All RPC help text references "RNG"
 6. [ ] Amount displays use "BTC" not "BTC"
-7. [ ] Unit conversion uses "botoshi" not "satoshi"
-8. [ ] Log files reference "Botcoin"
-9. [ ] Error messages reference "Botcoin"
-10. [ ] Man pages document "botcoin" commands
+7. [ ] Unit conversion uses "roshi" not "satoshi"
+8. [ ] Log files reference "RNG"
+9. [ ] Error messages reference "RNG"
+10. [ ] Man pages document "rng" commands
 
 ## Test Scenarios
 
-- Run `botcoind --help`, grep for "bitcoin" (should find none)
+- Run `rngd --help`, grep for "bitcoin" (should find none)
 - Check data directory creation path
 - Verify config file naming
 - Check RPC `getnetworkinfo` output for user agent

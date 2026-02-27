@@ -185,7 +185,7 @@ bool HeadersSyncState::ValidateAndProcessSingleHeader(const CBlockHeader& curren
     // limited hashing capability has a greater chance of producing a high
     // work chain if they compress the work into as few blocks as possible.
     //
-    // IMPORTANT (Botcoin): Our mainnet enables fPowAllowMinDifficultyBlocks.
+    // IMPORTANT (RNG): Our mainnet enables fPowAllowMinDifficultyBlocks.
     // Bitcoin Core's generic PermittedDifficultyTransition() anti-DoS check
     // assumes Bitcoin-like bounds and can incorrectly reject consensus-valid
     // chains once difficulty starts oscillating. That manifests as initial

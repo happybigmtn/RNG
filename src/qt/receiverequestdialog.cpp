@@ -14,7 +14,7 @@
 #include <QDialog>
 #include <QString>
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 
 ReceiveRequestDialog::ReceiveRequestDialog(QWidget* parent)
     : QDialog(parent, GUIUtil::dialog_flags),

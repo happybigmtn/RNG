@@ -35,13 +35,13 @@ public:
     /** If allow empty is set to false the field will be set to the minimum allowed value if left empty. **/
     void SetAllowEmpty(bool allow);
 
-    /** Set the minimum value in botoshis **/
+    /** Set the minimum value in roshis **/
     void SetMinValue(const CAmount& value);
 
-    /** Set the maximum value in botoshis **/
+    /** Set the maximum value in roshis **/
     void SetMaxValue(const CAmount& value);
 
-    /** Set single step in botoshis **/
+    /** Set single step in roshis **/
     void setSingleStep(const CAmount& step);
 
     /** Make read-only **/

@@ -1,4 +1,4 @@
-// Copyright (c) 2024-present The Botcoin developers
+// Copyright (c) 2024-present The RNG developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,7 +24,7 @@ namespace interfaces { class Mining; }
 namespace node {
 
 /**
- * Internal multi-threaded miner for Botcoin.
+ * Internal multi-threaded miner for RNG.
  * 
  * Architecture (v2 - per Codex roadmap):
  * - One COORDINATOR thread: creates block templates, monitors chain tip
@@ -43,7 +43,7 @@ namespace node {
  * - Thread-safe statistics via atomics
  * 
  * Usage:
- *   botcoind -mine -mineaddress=bot1q... -minethreads=8
+ *   rngd -mine -mineaddress=rng1q... -minethreads=8
  */
 class InternalMiner : public CValidationInterface {
 public:

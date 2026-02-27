@@ -6,10 +6,10 @@
 #define BITCOIN_NODE_PROTOCOL_VERSION_H
 
 /**
- * Botcoin network protocol versioning
+ * RNG network protocol versioning
  */
 
-static const int PROTOCOL_VERSION = 70100; // Botcoin protocol version
+static const int PROTOCOL_VERSION = 70100; // RNG protocol version
 
 //! initial proto version, to be increased after version/verack negotiation
 static const int INIT_PROTO_VERSION = 209;

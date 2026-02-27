@@ -20,7 +20,7 @@ target_link_libraries(test_bitcoin-qt
   core_interface
   bitcoinqt
   test_util
-  botcoin_node
+  rng_node
   Boost::headers
   Qt6::Test
 )

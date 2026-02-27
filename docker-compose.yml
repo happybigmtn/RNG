@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  botcoin:
-    image: ghcr.io/happybigmtn/botcoin:v1.0.0
-    container_name: botcoin
+  rng:
+    image: ghcr.io/happybigmtn/rng:v1.0.0
+    container_name: rng
     restart: unless-stopped
     
     # CPU limits (~50% by default)
@@ -14,7 +14,7 @@ services:
           memory: 2G
     
     volumes:
-      - botcoin-data:/home/botcoin/.botcoin
+      - rng-data:/home/rng/.rng
     
     # Expose P2P port (RPC stays internal for security)
     ports:
@@ -24,14 +24,14 @@ services:
     
     # Health check
     healthcheck:
-      test: ["CMD", "botcoin-cli", "getblockchaininfo"]
+      test: ["CMD", "rng-cli", "getblockchaininfo"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
 volumes:
-  botcoin-data:
+  rng-data:
     driver: local
 
 # Usage:
@@ -40,19 +40,19 @@ volumes:
 #   docker-compose up -d
 #
 # Check status:
-#   docker-compose exec botcoin botcoin-cli getblockchaininfo
+#   docker-compose exec rng rng-cli getblockchaininfo
 #
 # Create wallet:
-#   docker-compose exec botcoin botcoin-cli createwallet "miner"
+#   docker-compose exec rng rng-cli createwallet "miner"
 #
 # Get address:
-#   docker-compose exec botcoin botcoin-cli -rpcwallet=miner getnewaddress
+#   docker-compose exec rng rng-cli -rpcwallet=miner getnewaddress
 #
 # Mine a block:
-#   docker-compose exec botcoin botcoin-cli -rpcwallet=miner generatetoaddress 1 "YOUR_ADDRESS"
+#   docker-compose exec rng rng-cli -rpcwallet=miner generatetoaddress 1 "YOUR_ADDRESS"
 #
 # View logs:
-#   docker-compose logs -f botcoin
+#   docker-compose logs -f rng
 #
 # Stop:
 #   docker-compose down

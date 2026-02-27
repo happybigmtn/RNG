@@ -5,7 +5,7 @@
 
 #include <wallet/wallet.h>
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 #include <addresstype.h>
 #include <blockfilter.h>
 #include <chain.h>
@@ -468,16 +468,8 @@ std::shared_ptr<CWallet> CreateWallet(WalletContext& context, const std::string&
 
 // Re-creates wallet from the backup file by renaming and moving it into the wallet's directory.
 // If 'load_after_restore=true', the wallet object will be fully initialized and appended to the context.
-std::shared_ptr<CWallet> RestoreWallet(WalletContext& context, const fs::path& backup_file, const std::string& wallet_name, std::optional<bool> load_on_start, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings, bool load_after_restore, bool allow_unnamed)
+std::shared_ptr<CWallet> RestoreWallet(WalletContext& context, const fs::path& backup_file, const std::string& wallet_name, std::optional<bool> load_on_start, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings, bool load_after_restore)
 {
-    // Error if the wallet name is empty and allow_unnamed == false
-    // allow_unnamed == true is only used by migration to migrate an unnamed wallet
-    if (!allow_unnamed && wallet_name.empty()) {
-        error = Untranslated("Wallet name cannot be empty");
-        status = DatabaseStatus::FAILED_NEW_UNNAMED;
-        return nullptr;
-    }
-
     DatabaseOptions options;
     ReadDatabaseArgs(*context.args, options);
     options.require_existing = true;
@@ -4466,7 +4458,7 @@ util::Result<MigrationResult> MigrateLegacyToDescriptor(std::shared_ptr<CWallet>
         // Restore the backup
         // Convert the backup file to the wallet db file by renaming it and moving it into the wallet's directory.
         bilingual_str restore_error;
-        const auto& ptr_wallet = RestoreWallet(context, backup_path, wallet_name, /*load_on_start=*/std::nullopt, status, restore_error, warnings, /*load_after_restore=*/false, /*allow_unnamed=*/true);
+        const auto& ptr_wallet = RestoreWallet(context, backup_path, wallet_name, /*load_on_start=*/std::nullopt, status, restore_error, warnings, /*load_after_restore=*/false);
         if (!restore_error.empty()) {
             error += restore_error + _("\nUnable to restore backup of wallet.");
             return util::Error{error};

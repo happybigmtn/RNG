@@ -31,10 +31,10 @@ QList<BitcoinUnit> BitcoinUnits::availableUnits()
 QString BitcoinUnits::longName(Unit unit)
 {
     switch (unit) {
-    case Unit::BTC: return QString("BOT");
-    case Unit::mBTC: return QString("mBOT");
-    case Unit::uBTC: return QString::fromUtf8("µBOT (bits)");
-    case Unit::SAT: return QString("Botoshi (bots)");
+    case Unit::BTC: return QString("RNG");
+    case Unit::mBTC: return QString("mRNG");
+    case Unit::uBTC: return QString::fromUtf8("µRNG (bits)");
+    case Unit::SAT: return QString("roshi");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -45,7 +45,7 @@ QString BitcoinUnits::shortName(Unit unit)
     case Unit::BTC: return longName(unit);
     case Unit::mBTC: return longName(unit);
     case Unit::uBTC: return QString("bits");
-    case Unit::SAT: return QString("bots");
+    case Unit::SAT: return QString("roshi");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -53,10 +53,10 @@ QString BitcoinUnits::shortName(Unit unit)
 QString BitcoinUnits::description(Unit unit)
 {
     switch (unit) {
-    case Unit::BTC: return QString("Botcoins");
-    case Unit::mBTC: return QString("Milli-Botcoins (1 / 1" THIN_SP_UTF8 "000)");
-    case Unit::uBTC: return QString("Micro-Botcoins (bits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
-    case Unit::SAT: return QString("Botoshi (bots) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::BTC: return QString("RNGs");
+    case Unit::mBTC: return QString("Milli-RNGs (1 / 1" THIN_SP_UTF8 "000)");
+    case Unit::uBTC: return QString("Micro-RNGs (bits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::SAT: return QString("roshi (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }

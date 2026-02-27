@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
-add_library(botcoin_util STATIC EXCLUDE_FROM_ALL
+add_library(rng_util STATIC EXCLUDE_FROM_ALL
   asmap.cpp
   batchpriority.cpp
   bip32.cpp
@@ -37,11 +37,11 @@ add_library(botcoin_util STATIC EXCLUDE_FROM_ALL
   ../sync.cpp
 )
 
-target_link_libraries(botcoin_util
+target_link_libraries(rng_util
   PRIVATE
     core_interface
-    botcoin_clientversion
-    botcoin_crypto
+    rng_clientversion
+    rng_crypto
     $<$<PLATFORM_ID:Windows>:ws2_32>
     $<$<PLATFORM_ID:Windows>:iphlpapi>
     $<$<PLATFORM_ID:Windows>:bcrypt>

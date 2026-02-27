@@ -1,7 +1,7 @@
 # Address Format Specification
 
 ## Topic
-The encoding schemes and version bytes for Botcoin addresses and keys.
+The encoding schemes and version bytes for RNG addresses and keys.
 
 ## Behavioral Requirements
 
@@ -16,9 +16,9 @@ The encoding schemes and version bytes for Botcoin addresses and keys.
 
 | Type | HRP | Example |
 |------|-----|---------|
-| P2WPKH (v0) | **bot** | bot1qw508d6qejxtdg4y5r3zarvary0c5xw7k... |
-| P2WSH (v0) | **bot** | bot1q... (longer) |
-| P2TR (v1) | **bot** | bot1p... (Taproot) |
+| P2WPKH (v0) | **rng** | rng1qw508d6qejxtdg4y5r3zarvary0c5xw7k... |
+| P2WSH (v0) | **rng** | rng1q... (longer) |
+| P2TR (v1) | **rng** | rng1p... (Taproot) |
 
 ### Private Key Formats (Mainnet)
 
@@ -42,7 +42,7 @@ Note: Using same version bytes as Bitcoin xpub/xprv but different Base58 due to 
 |------|---------------|---------|-----|
 | P2PKH | **t** | 111 | 0x6F |
 | P2SH | **s** | 196 | 0xC4 |
-| Bech32 HRP | **tbot** | N/A | N/A |
+| Bech32 HRP | **trng** | N/A | N/A |
 | WIF | **c** | 239 | 0xEF |
 | tpub | **tpub** | 0x043587CF | - |
 | tprv | **tprv** | 0x04358394 | - |
@@ -53,8 +53,8 @@ Note: Using same version bytes as Bitcoin xpub/xprv but different Base58 due to 
 |----------|------|--------------|
 | BIP44 | m/44'/XXX'/0'/... | P2PKH (B...) |
 | BIP49 | m/49'/XXX'/0'/... | P2SH-P2WPKH (A...) |
-| BIP84 | m/84'/XXX'/0'/... | P2WPKH (bot1q...) |
-| BIP86 | m/86'/XXX'/0'/... | P2TR (bot1p...) |
+| BIP84 | m/84'/XXX'/0'/... | P2WPKH (rng1q...) |
+| BIP86 | m/86'/XXX'/0'/... | P2TR (rng1p...) |
 
 **Coin type**: TBD - register with SLIP-0044 or use unregistered range
 
@@ -73,8 +73,8 @@ Note: Using same version bytes as Bitcoin xpub/xprv but different Base58 due to 
 
 | Scenario | Behavior |
 |----------|----------|
-| Bitcoin address in Botcoin wallet | Rejected as invalid |
-| Botcoin address in Bitcoin wallet | Rejected as invalid |
+| Bitcoin address in RNG wallet | Rejected as invalid |
+| RNG address in Bitcoin wallet | Rejected as invalid |
 | Testnet address on mainnet | Rejected as wrong network |
 | Mainnet address on testnet | Rejected as wrong network |
 
@@ -97,7 +97,7 @@ base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 5);   // 'A'
 base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 128);     // '5' or 'K/L'
 base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};          // bpub
 base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};          // bprv
-bech32_hrp = "bot";
+bech32_hrp = "rng";
 
 // Testnet
 base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 111); // 't'
@@ -105,15 +105,15 @@ base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 196); // 's'
 base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 239);     // 'c'
 base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};          // tpub
 base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};          // tprv
-bech32_hrp = "tbot";
+bech32_hrp = "trng";
 ```
 
 ## Acceptance Criteria
 
 1. [ ] New P2PKH address starts with "B"
 2. [ ] New P2SH address starts with "A"  
-3. [ ] New SegWit address starts with "bot1"
-4. [ ] Taproot address starts with "bot1p"
+3. [ ] New SegWit address starts with "rng1"
+4. [ ] Taproot address starts with "rng1p"
 5. [ ] Bitcoin addresses (1, 3, bc1) are rejected
 6. [ ] Address checksum validation works
 7. [ ] Invalid checksum produces clear error
@@ -127,8 +127,8 @@ bech32_hrp = "tbot";
 
 - Generate P2PKH, verify "B" prefix
 - Generate P2SH, verify "A" prefix
-- Generate P2WPKH, verify "bot1q" prefix
-- Generate P2TR, verify "bot1p" prefix
+- Generate P2WPKH, verify "rng1q" prefix
+- Generate P2TR, verify "rng1p" prefix
 - Import Bitcoin address, verify rejection with clear error
 - Corrupt checksum, verify rejection
 - Export WIF key, verify "5" or "K/L" prefix

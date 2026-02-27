@@ -1,10 +1,10 @@
-# Copyright (c) 2024-present The Botcoin developers
+# Copyright (c) 2024-present The RNG developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
-# RandomX integration for Botcoin
+# RandomX integration for RNG
 # RandomX is a CPU-optimized proof-of-work algorithm used by Monero
-# and adopted by Botcoin for ASIC resistance.
+# and adopted by RNG for ASIC resistance.
 
 enable_language(C)
 

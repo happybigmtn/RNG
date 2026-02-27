@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_CASE(blockmanager_flush_block_file)
     BOOST_CHECK_EQUAL(blockman.CalculateCurrentUsage(), (TEST_BLOCK_SIZE + STORAGE_HEADER_BYTES) * 2);
 
     // First two blocks are written as expected
-    // Botcoin: PoW is not checked when reading from disk because RandomX
+    // RNG: PoW is not checked when reading from disk because RandomX
     // requires seed hash context that isn't available during block loading.
     // Blocks are trusted since they were validated when originally received.
     CBlock read_block;
@@ -277,7 +277,7 @@ BOOST_AUTO_TEST_CASE(blockmanager_flush_block_file)
     BOOST_CHECK_EQUAL(blockman.CalculateCurrentUsage(), (TEST_BLOCK_SIZE + STORAGE_HEADER_BYTES) * 2);
 
     // Block 2 was not overwritten:
-    // Botcoin: ReadBlock succeeds for on-disk blocks (PoW not checked)
+    // RNG: ReadBlock succeeds for on-disk blocks (PoW not checked)
     BOOST_CHECK(blockman.ReadBlock(read_block, pos2, {}));
     BOOST_CHECK_EQUAL(read_block.nVersion, 2);
 }

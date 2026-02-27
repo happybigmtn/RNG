@@ -1,8 +1,8 @@
-# Botcoin Minimum Viable Fork - Specification Index
+# RNG Minimum Viable Fork - Specification Index
 
 ## Overview
 
-Botcoin is a Bitcoin fork with **RandomX proof-of-work** optimized for AI agents. This document indexes all specifications required to launch.
+RNG is a Bitcoin fork with **RandomX proof-of-work** optimized for AI agents. This document indexes all specifications required to launch.
 
 ## Specification Status
 
@@ -19,7 +19,7 @@ Botcoin is a Bitcoin fork with **RandomX proof-of-work** optimized for AI agents
 | Testnets | [testnets.md](testnets.md) | ✅ Complete | Testnet/regtest parameters |
 | Branding | [branding.md](branding.md) | ✅ Complete | User-facing identity |
 | **Agent Integration** | [agent-integration.md](agent-integration.md) | ✅ Complete | MCP server, wallets, mining, autonomy |
-| **Agent Ecosystem** | [agent-ecosystem.md](agent-ecosystem.md) | ✅ Complete | Engagement triggers, building on Botcoin, viral loops |
+| **Agent Ecosystem** | [agent-ecosystem.md](agent-ecosystem.md) | ✅ Complete | Engagement triggers, building on RNG, viral loops |
 
 ## Quick Reference
 
@@ -36,7 +36,7 @@ Botcoin is a Bitcoin fork with **RandomX proof-of-work** optimized for AI agents
 | **Difficulty retarget** | Every 2016 blocks |
 | **Max block weight** | 4,000,000 WU |
 | **Coinbase maturity** | 100 blocks |
-| **Minimum fee** | 1 botoshi/vbyte |
+| **Minimum fee** | 1 roshi/vbyte |
 
 ### Address Prefixes (Mainnet)
 
@@ -44,7 +44,7 @@ Botcoin is a Bitcoin fork with **RandomX proof-of-work** optimized for AI agents
 |------|--------|
 | P2PKH | B |
 | P2SH | A |
-| Bech32 | bot1 |
+| Bech32 | rng1 |
 | WIF | 5/K/L |
 | xpub | bpub |
 | xprv | bprv |
@@ -69,7 +69,7 @@ Botcoin is a Bitcoin fork with **RandomX proof-of-work** optimized for AI agents
 
 ### Phase 1: Core Changes
 - [ ] Fork Bitcoin Core repository
-- [ ] Modify `chainparams.cpp` with all Botcoin parameters
+- [ ] Modify `chainparams.cpp` with all RNG parameters
 - [ ] Integrate RandomX library
 - [ ] Replace SHA256d with RandomX in `pow.cpp`
 - [ ] Update address prefixes in `base58.cpp`

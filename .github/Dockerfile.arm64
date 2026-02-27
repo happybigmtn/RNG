@@ -19,9 +19,9 @@ RUN cmake -B build \
     -DENABLE_WALLET=ON \
     && cmake --build build -j$(nproc)
 
-RUN strip build/bin/botcoind build/bin/botcoin-cli
+RUN strip build/bin/rngd build/bin/rng-cli
 
 # Copy to output
 FROM scratch AS export
-COPY --from=builder /build/build/bin/botcoind /botcoind
-COPY --from=builder /build/build/bin/botcoin-cli /botcoin-cli
+COPY --from=builder /build/build/bin/rngd /rngd
+COPY --from=builder /build/build/bin/rng-cli /rng-cli

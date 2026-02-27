@@ -4,7 +4,7 @@
 
 #include <util/check.h>
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 
 #include <clientversion.h>
 #include <tinyformat.h>

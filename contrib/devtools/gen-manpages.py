@@ -10,13 +10,13 @@ import tempfile
 import argparse
 
 BINARIES = [
-'bin/botcoin',
-'bin/botcoind',
-'bin/botcoin-cli',
-'bin/botcoin-tx',
-'bin/botcoin-wallet',
-'bin/botcoin-util',
-'bin/botcoin-qt',
+'bin/rng',
+'bin/rngd',
+'bin/rng-cli',
+'bin/rng-tx',
+'bin/rng-wallet',
+'bin/rng-util',
+'bin/rng-qt',
 ]
 
 parser = argparse.ArgumentParser(

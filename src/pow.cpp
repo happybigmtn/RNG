@@ -219,8 +219,8 @@ bool CheckProofOfWorkImpl(uint256 hash, unsigned int nBits, const Consensus::Par
 uint256 GetRandomXSeedHash(const CBlockIndex* pindex)
 {
     if (!pindex) {
-        // Genesis seed: SHA256("Botcoin Genesis Seed")
-        return Hash(std::string("Botcoin Genesis Seed"));
+        // Genesis seed: SHA256("RNG Genesis Seed")
+        return Hash(std::string("RNG Genesis Seed"));
     }
 
     // Get seed height for this block
@@ -228,7 +228,7 @@ uint256 GetRandomXSeedHash(const CBlockIndex* pindex)
 
     if (seed_height == 0) {
         // Use genesis seed
-        return Hash(std::string("Botcoin Genesis Seed"));
+        return Hash(std::string("RNG Genesis Seed"));
     }
 
     // Navigate to the seed block
@@ -239,7 +239,7 @@ uint256 GetRandomXSeedHash(const CBlockIndex* pindex)
 
     if (!seed_block || seed_block->nHeight != static_cast<int>(seed_height)) {
         // Shouldn't happen, but fallback to genesis seed
-        return Hash(std::string("Botcoin Genesis Seed"));
+        return Hash(std::string("RNG Genesis Seed"));
     }
 
     // Return the block hash at seed height
@@ -267,7 +267,7 @@ bool CheckBlockProofOfWork(const CBlockHeader& header, const CBlockIndex* pindex
         uint64_t seed_height = GetRandomXSeedHeight(block_height);
 
         if (seed_height == 0) {
-            seed_hash = Hash(std::string("Botcoin Genesis Seed"));
+            seed_hash = Hash(std::string("RNG Genesis Seed"));
         } else {
             const CBlockIndex* seed_block = pindexPrev;
             while (seed_block && seed_block->nHeight > static_cast<int>(seed_height)) {
@@ -276,12 +276,12 @@ bool CheckBlockProofOfWork(const CBlockHeader& header, const CBlockIndex* pindex
             if (seed_block && seed_block->nHeight == static_cast<int>(seed_height)) {
                 seed_hash = seed_block->GetBlockHash();
             } else {
-                seed_hash = Hash(std::string("Botcoin Genesis Seed"));
+                seed_hash = Hash(std::string("RNG Genesis Seed"));
             }
         }
     } else {
         // Genesis block
-        seed_hash = Hash(std::string("Botcoin Genesis Seed"));
+        seed_hash = Hash(std::string("RNG Genesis Seed"));
     }
 
     // Compute RandomX PoW hash

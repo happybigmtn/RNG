@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 Botcoin Core developers
+# Copyright (c) 2026 RNG Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test Botcoin address prefixes.
+"""Test RNG address prefixes.
 
 This test verifies:
 - P2PKH addresses start with 't' (testnet/regtest) or 'B' (mainnet)
 - P2SH addresses start with 's' (testnet/regtest) or 'A' (mainnet)
-- Bech32 addresses start with 'tbot1' (testnet/regtest) or 'bot1' (mainnet)
-- Taproot addresses contain 'bot1p' or 'tbot1p'
+- Bech32 addresses start with 'trng1' (testnet/regtest) or 'rng1' (mainnet)
+- Taproot addresses contain 'rng1p' or 'trng1p'
 - Bitcoin addresses are rejected
 """
 
@@ -26,7 +26,7 @@ class AddressPrefixTest(BitcoinTestFramework):
     def run_test(self):
         node = self.nodes[0]
 
-        self.log.info("Testing Botcoin address prefixes...")
+        self.log.info("Testing RNG address prefixes...")
 
         # Test: P2PKH starts with 't' (regtest uses testnet prefixes)
         legacy = node.getnewaddress("", "legacy")
@@ -40,15 +40,15 @@ class AddressPrefixTest(BitcoinTestFramework):
         assert p2sh.startswith('2') or p2sh.startswith('s'), \
             f"P2SH unexpected prefix: '{p2sh}'"
 
-        # Test: Bech32 starts with 'tbot1' (regtest)
+        # Test: Bech32 starts with 'trng1' (regtest)
         bech32 = node.getnewaddress("", "bech32")
         self.log.info(f"Bech32 address: {bech32}")
-        assert bech32.startswith('tbot1'), f"Bech32 unexpected prefix: '{bech32}'"
+        assert bech32.startswith('trng1'), f"Bech32 unexpected prefix: '{bech32}'"
 
-        # Test: Taproot starts with 'tbot1p'
+        # Test: Taproot starts with 'trng1p'
         taproot = node.getnewaddress("", "bech32m")
         self.log.info(f"Taproot address: {taproot}")
-        assert taproot.startswith('tbot1p'), f"Taproot unexpected prefix: '{taproot}'"
+        assert taproot.startswith('trng1p'), f"Taproot unexpected prefix: '{taproot}'"
 
         # Test: Bitcoin addresses rejected
         self.log.info("Testing Bitcoin address rejection...")

@@ -157,9 +157,9 @@ add_windows_application_manifest(test_bitcoin)
 target_link_libraries(test_bitcoin
   core_interface
   test_util
-  botcoin_cli
-  botcoin_node
-  botcoin_consensus
+  rng_cli
+  rng_node
+  rng_consensus
   minisketch
   secp256k1
   Boost::headers

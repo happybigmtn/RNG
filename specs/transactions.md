@@ -1,12 +1,12 @@
 # Transaction Specification
 
 ## Topic
-The format, validation rules, and fee policies for Botcoin transactions.
+The format, validation rules, and fee policies for RNG transactions.
 
 ## Behavioral Requirements
 
 ### Transaction Format
-Botcoin uses **Bitcoin's transaction format** unchanged:
+RNG uses **Bitcoin's transaction format** unchanged:
 
 **Legacy Transaction (pre-SegWit):**
 | Field | Size | Description |
@@ -58,9 +58,9 @@ Botcoin uses **Bitcoin's transaction format** unchanged:
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|
-| **Minimum relay fee** | **1 botoshi/vbyte** | Required for node relay |
-| **Dust threshold** | **546 botoshis** | Outputs below this are "dust" |
-| **Dust relay fee** | **3 botoshis/vbyte** | For dust limit calculation |
+| **Minimum relay fee** | **1 roshi/vbyte** | Required for node relay |
+| **Dust threshold** | **546 roshis** | Outputs below this are "dust" |
+| **Dust relay fee** | **3 roshis/vbyte** | For dust limit calculation |
 
 **Fee calculation**:
 - Fee = sum(inputs) - sum(outputs)
@@ -72,7 +72,7 @@ An output is dust if spending it costs more than its value:
 ```
 dust_limit = (input_size + 34) × 3 × dust_relay_fee
 ```
-For P2PKH: (148 + 34) × 3 × 3 = 1,638 botoshis ≈ 546 (simplified)
+For P2PKH: (148 + 34) × 3 × 3 = 1,638 roshis ≈ 546 (simplified)
 
 ### Replace-By-Fee (BIP125)
 - Transactions may opt-in to RBF via sequence number < 0xFFFFFFFE

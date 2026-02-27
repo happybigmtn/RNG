@@ -37,15 +37,15 @@ jobs:
         run: |
           VERSION="${{ github.ref_name }}"
           mkdir -p release
-          cp build/bin/botcoind build/bin/botcoin-cli release/
-          strip release/botcoind release/botcoin-cli
-          cd release && sha256sum botcoind botcoin-cli > SHA256SUMS && cd ..
-          tar -czvf "botcoin-${VERSION}-linux-x86_64.tar.gz" release
+          cp build/bin/rngd build/bin/rng-cli release/
+          strip release/rngd release/rng-cli
+          cd release && sha256sum rngd rng-cli > SHA256SUMS && cd ..
+          tar -czvf "rng-${VERSION}-linux-x86_64.tar.gz" release
       
       - uses: actions/upload-artifact@v4
         with:
           name: linux-x86_64
-          path: botcoin-*-linux-x86_64.tar.gz
+          path: rng-*-linux-x86_64.tar.gz
 
   build-linux-arm64:
     runs-on: ubuntu-22.04
@@ -76,14 +76,14 @@ jobs:
         run: |
           VERSION="${{ github.ref_name }}"
           mkdir -p release
-          cp output/botcoind output/botcoin-cli release/ 2>/dev/null || cp output/usr/local/bin/botcoin* release/
-          cd release && sha256sum botcoind botcoin-cli > SHA256SUMS && cd ..
-          tar -czvf "botcoin-${VERSION}-linux-arm64.tar.gz" release
+          cp output/rngd output/rng-cli release/ 2>/dev/null || cp output/usr/local/bin/rng* release/
+          cd release && sha256sum rngd rng-cli > SHA256SUMS && cd ..
+          tar -czvf "rng-${VERSION}-linux-arm64.tar.gz" release
       
       - uses: actions/upload-artifact@v4
         with:
           name: linux-arm64
-          path: botcoin-*-linux-arm64.tar.gz
+          path: rng-*-linux-arm64.tar.gz
 
   build-macos:
     strategy:
@@ -117,15 +117,15 @@ jobs:
         run: |
           VERSION="${{ github.ref_name }}"
           mkdir -p release
-          cp build/bin/botcoind build/bin/botcoin-cli release/
-          strip release/botcoind release/botcoin-cli 2>/dev/null || true
-          cd release && shasum -a 256 botcoind botcoin-cli > SHA256SUMS && cd ..
-          tar -czvf "botcoin-${VERSION}-macos-${{ matrix.arch }}.tar.gz" release
+          cp build/bin/rngd build/bin/rng-cli release/
+          strip release/rngd release/rng-cli 2>/dev/null || true
+          cd release && shasum -a 256 rngd rng-cli > SHA256SUMS && cd ..
+          tar -czvf "rng-${VERSION}-macos-${{ matrix.arch }}.tar.gz" release
       
       - uses: actions/upload-artifact@v4
         with:
           name: macos-${{ matrix.arch }}
-          path: botcoin-*-macos-${{ matrix.arch }}.tar.gz
+          path: rng-*-macos-${{ matrix.arch }}.tar.gz
 
   docker:
     runs-on: ubuntu-22.04
@@ -173,7 +173,7 @@ jobs:
             curl -sS -X PUT \
               -H "Authorization: Bearer ${GH_TOKEN}" \
               -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/users/${{ github.repository_owner }}/packages/container/botcoin/visibility" \
+              "https://api.github.com/users/${{ github.repository_owner }}/packages/container/rng/visibility" \
               -d '{"visibility":"public"}'
           else
             echo "GHCR_PUBLISH_TOKEN not set, skipping"
@@ -205,7 +205,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           files: dist/*
           body: |
-            ## Botcoin ${{ github.ref_name }}
+            ## RNG ${{ github.ref_name }}
             
             ### Quick Install
             ```bash
@@ -215,15 +215,15 @@ jobs:
             ### Downloads
             | Platform | File |
             |----------|------|
-            | Linux x86_64 | `botcoin-${{ github.ref_name }}-linux-x86_64.tar.gz` |
-            | Linux ARM64 | `botcoin-${{ github.ref_name }}-linux-arm64.tar.gz` |
-            | macOS Intel | `botcoin-${{ github.ref_name }}-macos-x86_64.tar.gz` |
-            | macOS Apple Silicon | `botcoin-${{ github.ref_name }}-macos-arm64.tar.gz` |
+            | Linux x86_64 | `rng-${{ github.ref_name }}-linux-x86_64.tar.gz` |
+            | Linux ARM64 | `rng-${{ github.ref_name }}-linux-arm64.tar.gz` |
+            | macOS Intel | `rng-${{ github.ref_name }}-macos-x86_64.tar.gz` |
+            | macOS Apple Silicon | `rng-${{ github.ref_name }}-macos-arm64.tar.gz` |
             
             ### Docker
             ```bash
             docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-            docker run -d --name botcoin --cpus=0.5 ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            docker run -d --name rng --cpus=0.5 ghcr.io/${{ github.repository }}:${{ github.ref_name }}
             ```
             
             ### Verify Checksums

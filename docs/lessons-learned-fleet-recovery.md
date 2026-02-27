@@ -1,4 +1,4 @@
-# Lessons Learned — Botcoin Fleet Recovery
+# Lessons Learned — RNG Fleet Recovery
 
 This doc summarizes a real-world fleet recovery incident and the repeatable process we now use.
 

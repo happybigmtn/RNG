@@ -1,4 +1,4 @@
-// Copyright (c) 2024-present The Botcoin developers
+// Copyright (c) 2024-present The RNG developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -315,13 +315,13 @@ uint256 RandomXHashLight(std::span<const unsigned char> data, const uint256& see
 }
 
 uint64_t GetRandomXSeedHeight(uint64_t block_height) {
-    // Botcoin uses a fixed genesis seed for all blocks.
+    // RNG uses a fixed genesis seed for all blocks.
     // This eliminates permanent fork divergence that occurs when nodes
     // on different forks have different block hashes at epoch boundaries.
     // Any node can verify any block regardless of chain history.
     //
     // Trade-off: theoretically less ASIC-resistant than rotating seeds,
-    // but irrelevant for Botcoin's network size. Stability > theory.
+    // but irrelevant for RNG's network size. Stability > theory.
     (void)block_height;
     return 0;
 }

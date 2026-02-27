@@ -30,7 +30,7 @@ public:
                 id processInfo = [NSProcessInfo processInfo];
                 if ([processInfo respondsToSelector:@selector(beginActivityWithOptions:reason:)])
                 {
-                    activityId = [processInfo beginActivityWithOptions: activityOptions reason:@"Temporarily disable App Nap for botcoin-qt."];
+                    activityId = [processInfo beginActivityWithOptions: activityOptions reason:@"Temporarily disable App Nap for rng-qt."];
                     [activityId retain];
                 }
             }

@@ -5,7 +5,7 @@
 #ifndef BITCOIN_QT_RPCCONSOLE_H
 #define BITCOIN_QT_RPCCONSOLE_H
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 
 #include <qt/clientmodel.h>
 #include <qt/guiutil.h>

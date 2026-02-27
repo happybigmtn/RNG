@@ -4,7 +4,7 @@
 
 #include <node/kernel_notifications.h>
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 
 #include <chain.h>
 #include <common/args.h>

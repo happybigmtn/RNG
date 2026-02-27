@@ -209,7 +209,7 @@ class ImportDescriptorsTest(BitcoinTestFramework):
         xpriv = "tprv8ZgxMBicQKsPeuVhWwi6wuMQGfPKi9Li5GtX35jVNknACgqe3CY4g5xgkfDDJcmtF7o1QnxWDRYw4H5P26PXq7sbcUkEqeR4fg3Kxp2tigg"
         xpub = "tpubD6NzVbkrYhZ4YNXVQbNhMK1WqguFsUXceaVJKbmno2aZ3B6QfbMeraaYvnBSGpV3vxLyTTK9DYT1yoEck4XUScMzXoQ2U2oSmE2JyMedq3H"
         addresses = ["2N7yv4p8G8yEaPddJxY41kPihnWvs39qCMf", "2MsHxyb2JS3pAySeNUsJ7mNnurtpeenDzLA"] # hdkeypath=m/0'/0'/0' and 1'
-        addresses += ["tbot1qrd3n235cj2czsfmsuvqqpr3lu6lg0ju7v509gu", "tbot1qfqeppuvj0ww98r6qghmdkj70tv8qpchet4cpgg"] # wpkh subscripts corresponding to the above addresses
+        addresses += ["trng1qrd3n235cj2czsfmsuvqqpr3lu6lg0ju737gca4", "trng1qfqeppuvj0ww98r6qghmdkj70tv8qpcheklluap"] # wpkh subscripts corresponding to the above addresses
         desc = "sh(wpkh(" + xpub + "/0/0/*" + "))"
 
         self.log.info("Ranged descriptors cannot have labels")
@@ -324,11 +324,11 @@ class ImportDescriptorsTest(BitcoinTestFramework):
         self.log.info('Key ranges should be imported in order')
         xpub = "tpubDAXcJ7s7ZwicqjprRaEWdPoHKrCS215qxGYxpusRLLmJuT69ZSicuGdSfyvyKpvUNYBW1s2U3NSrT6vrCYB9e6nZUEvrqnwXPF8ArTCRXMY"
         addresses = [
-            'tbot1qtmp74ayg7p24uslctssvjm06q5phz4yr6sg2nr', # m/0'/0'/0
-            'tbot1q8vprchan07gzagd5e6v9wd7azyucksq265wckg', # m/0'/0'/1
-            'tbot1qtuqdtha7zmqgcrr26n2rqxztv5y8rafjaf07ln', # m/0'/0'/2
-            'tbot1qau64272ymawq26t90md6an0ps99qkrsegttc4q', # m/0'/0'/3
-            'tbot1qsg97266hrh6cpmutqen8s4s962aryy77wdltgq', # m/0'/0'/4
+            'trng1qtmp74ayg7p24uslctssvjm06q5phz4yr860hx2', # m/0'/0'/0
+            'trng1q8vprchan07gzagd5e6v9wd7azyucksq287f9rp', # m/0'/0'/1
+            'trng1qtuqdtha7zmqgcrr26n2rqxztv5y8rafjqrgr26', # m/0'/0'/2
+            'trng1qau64272ymawq26t90md6an0ps99qkrse4pv9qf', # m/0'/0'/3
+            'trng1qsg97266hrh6cpmutqen8s4s962aryy77n8ckaf', # m/0'/0'/4
         ]
 
         self.test_importdesc({'desc': descsum_create('wpkh([80002067/0h/0h]' + xpub + '/*)'),
@@ -476,9 +476,9 @@ class ImportDescriptorsTest(BitcoinTestFramework):
 
         assert_equal(wmulti_priv.getwalletinfo()['keypoolsize'], 1001) # Range end (1000) is inclusive, so 1001 addresses generated
         addr = wmulti_priv.getnewaddress('', 'bech32') # uses receive 0
-        assert_equal(addr, 'tbot1qdt0qy5p7dzhxzmegnn4ulzhard33s2809arjqgjndx87rv5vd0fqafjrl4') # Derived at m/84'/0'/0'/0
+        assert_equal(addr, 'trng1qdt0qy5p7dzhxzmegnn4ulzhard33s2809arjqgjndx87rv5vd0fqh8q7ja') # Derived at m/84'/0'/0'/0
         change_addr = wmulti_priv.getrawchangeaddress('bech32') # uses change 0
-        assert_equal(change_addr, 'tbot1qt9uhe3a9hnq7vajl7a094z4s3crm9ttf8zw3f5v9gr2nyd7e3lnsny98ut') # Derived at m/84'/1'/0'/0
+        assert_equal(change_addr, 'trng1qt9uhe3a9hnq7vajl7a094z4s3crm9ttf8zw3f5v9gr2nyd7e3lnse2h63r') # Derived at m/84'/1'/0'/0
         assert_equal(wmulti_priv.getwalletinfo()['keypoolsize'], 1000)
         txid = w0.sendtoaddress(addr, 10)
         self.generate(self.nodes[0], 6)
@@ -509,9 +509,9 @@ class ImportDescriptorsTest(BitcoinTestFramework):
 
         assert_equal(wmulti_pub.getwalletinfo()['keypoolsize'], 1000) # The first one was already consumed by previous import and is detected as used
         addr = wmulti_pub.getnewaddress('', 'bech32') # uses receive 1
-        assert_equal(addr, 'tbot1qp8s25ckjl7gr6x2q3dx3tn2pytwp05upkjztk6ey857tt50r5aeqyttcch') # Derived at m/84'/0'/0'/1
+        assert_equal(addr, 'trng1qp8s25ckjl7gr6x2q3dx3tn2pytwp05upkjztk6ey857tt50r5aeqw9e94l') # Derived at m/84'/0'/0'/1
         change_addr = wmulti_pub.getrawchangeaddress('bech32') # uses change 2
-        assert_equal(change_addr, 'tbot1qp6j3jw8yetefte7kw6v5pc89rkgakzy98p6gf7ayslaveaxqyjusylyn52') # Derived at m/84'/1'/0'/2
+        assert_equal(change_addr, 'trng1qp6j3jw8yetefte7kw6v5pc89rkgakzy98p6gf7ayslaveaxqyjusw3kwez') # Derived at m/84'/1'/0'/2
         assert send_txid in self.nodes[0].getrawmempool(True)
         assert send_txid in (x['txid'] for x in wmulti_pub.listunspent(0))
         assert_equal(wmulti_pub.getwalletinfo()['keypoolsize'], 999)

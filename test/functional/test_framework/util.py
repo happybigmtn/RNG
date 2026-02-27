@@ -303,24 +303,34 @@ def get_binary_paths(config):
 
     paths = types.SimpleNamespace()
     binaries = {
-        "bitcoin": "BITCOIN_BIN",
-        "bitcoind": "BITCOIND",
-        "bench_bitcoin": "BITCOIN_BENCH",
-        "bitcoin-cli": "BITCOINCLI",
-        "bitcoin-util": "BITCOINUTIL",
-        "bitcoin-tx": "BITCOINTX",
-        "bitcoin-chainstate": "BITCOINCHAINSTATE",
-        "bitcoin-wallet": "BITCOINWALLET",
+        "bitcoin": ("BITCOIN_BIN", ["bitcoin", "rng"]),
+        "bitcoind": ("BITCOIND", ["bitcoind", "rngd"]),
+        "bench_bitcoin": ("BITCOIN_BENCH", ["bench_bitcoin"]),
+        "bitcoin-cli": ("BITCOINCLI", ["bitcoin-cli", "rng-cli"]),
+        "bitcoin-util": ("BITCOINUTIL", ["bitcoin-util", "rng-util"]),
+        "bitcoin-tx": ("BITCOINTX", ["bitcoin-tx", "rng-tx"]),
+        "bitcoin-chainstate": ("BITCOINCHAINSTATE", ["bitcoin-chainstate", "rng-chainstate"]),
+        "bitcoin-wallet": ("BITCOINWALLET", ["bitcoin-wallet", "rng-wallet"]),
     }
     # Set paths to bitcoin core binaries allowing overrides with environment
     # variables.
-    for binary, env_variable_name in binaries.items():
-        default_filename = os.path.join(
-            config["environment"]["BUILDDIR"],
-            "bin",
-            binary + config["environment"]["EXEEXT"],
-        )
-        setattr(paths, env_variable_name.lower(), os.getenv(env_variable_name, default=default_filename))
+    bin_dir = os.path.join(config["environment"]["BUILDDIR"], "bin")
+    exeext = config["environment"]["EXEEXT"]
+    for _, (env_variable_name, candidates) in binaries.items():
+        # Keep compatibility with existing env var overrides.
+        if env_val := os.getenv(env_variable_name):
+            setattr(paths, env_variable_name.lower(), env_val)
+            continue
+
+        # Prefer the first existing binary among known name candidates.
+        default_filename = os.path.join(bin_dir, candidates[0] + exeext)
+        selected = default_filename
+        for candidate in candidates:
+            candidate_path = os.path.join(bin_dir, candidate + exeext)
+            if os.path.isfile(candidate_path):
+                selected = candidate_path
+                break
+        setattr(paths, env_variable_name.lower(), selected)
     # BITCOIN_CMD environment variable can be specified to invoke bitcoin
     # wrapper binary instead of other executables.
     paths.bitcoin_cmd = shlex.split(os.getenv("BITCOIN_CMD", "")) or None
@@ -588,13 +598,13 @@ def get_temp_default_datadir(temp_dir: pathlib.Path) -> tuple[dict, pathlib.Path
     temp_dir, as well as the complete path it would return."""
     if platform.system() == "Windows":
         env = dict(APPDATA=str(temp_dir))
-        datadir = temp_dir / "Botcoin"
+        datadir = temp_dir / "RNG"
     else:
         env = dict(HOME=str(temp_dir))
         if platform.system() == "Darwin":
-            datadir = temp_dir / "Library/Application Support/Botcoin"
+            datadir = temp_dir / "Library/Application Support/RNG"
         else:
-            datadir = temp_dir / ".botcoin"
+            datadir = temp_dir / ".rng"
     return env, datadir
 
 

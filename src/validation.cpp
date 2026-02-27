@@ -3,7 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 
 #include <validation.h>
 
@@ -1837,9 +1837,9 @@ PackageMempoolAcceptResult ProcessNewPackage(Chainstate& active_chainstate, CTxM
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    // Monero-style tail emission: block reward never drops below 0.6 BOT
+    // Monero-style tail emission: block reward never drops below 0.6 RNG
     // This guarantees perpetual mining incentive regardless of fee market
-    static const CAmount TAIL_EMISSION = 60000000; // 0.6 BOT (in satoshis)
+    static const CAmount TAIL_EMISSION = 60000000; // 0.6 RNG (in satoshis)
 
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
 
@@ -1851,7 +1851,7 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
         nSubsidy >>= halvings;
     }
 
-    // Tail emission floor: never go below 0.6 BOT per block
+    // Tail emission floor: never go below 0.6 RNG per block
     if (nSubsidy < TAIL_EMISSION)
         nSubsidy = TAIL_EMISSION;
 
@@ -3887,7 +3887,7 @@ void ChainstateManager::ReceivedBlockTransactions(const CBlock& block, CBlockInd
 
 static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
-    // Note: Botcoin uses RandomX for proof-of-work, which requires chain context
+    // Note: RNG uses RandomX for proof-of-work, which requires chain context
     // (the seed hash depends on a previous block's hash). The actual PoW validation
     // is done in ContextualCheckBlockHeader where we have access to pindexPrev.
     //
@@ -4098,7 +4098,7 @@ bool HasValidProofOfWork(std::span<const CBlockHeader> headers, const Consensus:
 {
     // For header validation, we need to use RandomX PoW
     // For genesis epoch (blocks 0-2111), use the genesis seed
-    uint256 genesis_seed = Hash(std::string("Botcoin Genesis Seed"));
+    uint256 genesis_seed = Hash(std::string("RNG Genesis Seed"));
     
     for (const auto& header : headers) {
         // For now, assume we are in genesis epoch (seed_height = 0)

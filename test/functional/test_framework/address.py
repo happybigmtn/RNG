@@ -32,10 +32,10 @@ from test_framework.segwit_addr import (
 )
 
 
-ADDRESS_BCRT1_UNSPENDABLE = 'tbot1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxhvdlq'
-ADDRESS_BCRT1_UNSPENDABLE_DESCRIPTOR = 'addr(tbot1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxhvdlq)#0xj0mv84'
+ADDRESS_BCRT1_UNSPENDABLE = 'trng1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqve7sjg'
+ADDRESS_BCRT1_UNSPENDABLE_DESCRIPTOR = 'addr(trng1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqve7sjg)#0xj0mv84'
 # Coins sent to this address can be spent with a witness stack of just OP_TRUE
-ADDRESS_BCRT1_P2WSH_OP_TRUE = 'tbot1qft5p2uhsdcdc3l2ua4ap5qqfg4pjaqlp250x7us7a8qqhrxrxfsq8gdvux'
+ADDRESS_BCRT1_P2WSH_OP_TRUE = 'trng1qft5p2uhsdcdc3l2ua4ap5qqfg4pjaqlp250x7us7a8qqhrxrxfsqdxl33w'
 
 
 class AddressType(enum.Enum):
@@ -59,7 +59,7 @@ def create_deterministic_address_bcrt1_p2tr_op_true(explicit_internal_key=None):
     taproot_info = taproot_construct(internal_key, [("only-path", CScript([OP_TRUE]))])
     address = output_key_to_p2tr(taproot_info.output_pubkey)
     if explicit_internal_key is None:
-        assert_equal(address, 'tbot1p9yfmy5h72durp7zrhlw9lf7jpwjgvwdg0jr0lqmmjtgg83266lqsw8d5d0')
+        assert_equal(address, 'trng1p9yfmy5h72durp7zrhlw9lf7jpwjgvwdg0jr0lqmmjtgg83266lqsyflfq8')
     return (address, taproot_info)
 
 
@@ -136,7 +136,7 @@ def program_to_witness(version, program, main=False):
     assert 0 <= version <= 16
     assert 2 <= len(program) <= 40
     assert version > 0 or len(program) in [20, 32]
-    return encode_segwit_address("bot" if main else "tbot", version, program)
+    return encode_segwit_address("rng" if main else "trng", version, program)
 
 def script_to_p2wsh(script, main=False):
     script = check_script(script)
@@ -175,7 +175,7 @@ def check_script(script):
 
 def bech32_to_bytes(address):
     hrp = address.split('1')[0]
-    if hrp not in ['bc', 'tb', 'bcrt', 'bot', 'tbot']:
+    if hrp not in ['bc', 'tb', 'bcrt', 'rng', 'trng']:
         return (None, None)
     version, payload = decode_segwit_address(hrp, address)
     if version is None:

@@ -16,18 +16,18 @@ Trustless peer-to-peer exchange between BTC and BTC without intermediaries.
 
 ### Swap Discovery
 
-Peers broadcast swap offers via Botcoin P2P network using a new message type:
+Peers broadcast swap offers via RNG P2P network using a new message type:
 
 ```
 Message: SWAOFFER (0x50)
 ├── offer_id: uint256 (hash of offer)
 ├── direction: uint8 (0 = selling BTC, 1 = buying BTC)
-├── bot_amount: int64 (botoshis)
+├── rng_amount: int64 (roshis)
 ├── btc_amount: int64 (satoshis)
-├── min_bot: int64 (minimum partial fill)
+├── min_rng: int64 (minimum partial fill)
 ├── min_btc: int64 (minimum partial fill)
 ├── expires_at: uint32 (block height)
-├── maker_bot_address: string (where maker receives BTC)
+├── maker_rng_address: string (where maker receives RNG)
 ├── maker_btc_address: string (where maker receives BTC)
 ├── maker_node: string (P2P address for direct communication)
 └── signature: bytes (proves ownership of addresses)
@@ -154,22 +154,22 @@ Using Taproot (P2TR):
 
 ```bash
 # Create and broadcast swap offer
-botcoin-cli swapoffer --sell-bot 100 --for-btc 0.01 --expires 1440
+rng-cli swapoffer --sell-rng 100 --for-btc 0.01 --expires 1440
 
 # List available offers from network
-botcoin-cli swapoffers [--min-bot 10] [--max-rate 0.0001]
+rng-cli swapoffers [--min-rng 10] [--max-rate 0.0001]
 
 # Accept an offer and begin swap
-botcoin-cli swapaccept <offer_id>
+rng-cli swapaccept <offer_id>
 
 # Check swap status
-botcoin-cli swapstatus <swap_id>
+rng-cli swapstatus <swap_id>
 
 # List my active swaps
-botcoin-cli myswaps [--pending|--completed|--refunded]
+rng-cli myswaps [--pending|--completed|--refunded]
 
 # Manually refund expired swap
-botcoin-cli swaprefund <swap_id>
+rng-cli swaprefund <swap_id>
 ```
 
 ### MCP Tools
@@ -178,16 +178,16 @@ botcoin-cli swaprefund <swap_id>
 {
   "tools": [
     {
-      "name": "botcoin_swap_offer",
+      "name": "rng_swap_offer",
       "description": "Create a swap offer selling BTC for BTC",
       "parameters": {
-        "bot_amount": "Amount of BTC to sell",
+        "rng_amount": "Amount of RNG to sell",
         "btc_amount": "Amount of BTC to receive",
         "expires_blocks": "Blocks until offer expires"
       }
     },
     {
-      "name": "botcoin_swap_list",
+      "name": "rng_swap_list",
       "description": "List available swap offers on the network",
       "parameters": {
         "direction": "buy or sell BTC",
@@ -196,14 +196,14 @@ botcoin-cli swaprefund <swap_id>
       }
     },
     {
-      "name": "botcoin_swap_accept",
+      "name": "rng_swap_accept",
       "description": "Accept a swap offer and execute atomic swap",
       "parameters": {
         "offer_id": "ID of offer to accept"
       }
     },
     {
-      "name": "botcoin_swap_status", 
+      "name": "rng_swap_status", 
       "description": "Check status of an in-progress swap",
       "parameters": {
         "swap_id": "ID of swap"
@@ -222,7 +222,7 @@ Agents can be configured with swap policies:
   "swap_policy": {
     "enabled": true,
     "auto_accept": false,
-    "max_bot_per_swap": 100,
+    "max_rng_per_swap": 100,
     "min_btc_rate": 0.00008,
     "max_btc_rate": 0.00012,
     "require_approval_above": 500
@@ -254,7 +254,7 @@ Agents can be configured with swap policies:
 def test_successful_swap():
     # Alice has BTC, wants BTC
     # Bob has BTC, wants BTC
-    alice_offer = alice.swapoffer(sell_bot=100, for_btc=0.01)
+    alice_offer = alice.swapoffer(sell_rng=100, for_btc=0.01)
     
     # Bob sees offer, accepts
     bob.swapaccept(alice_offer.id)
@@ -264,13 +264,13 @@ def test_successful_swap():
     
     # Verify balances
     assert alice.btc_balance >= 0.01
-    assert bob.bot_balance >= 100
+    assert bob.rng_balance >= 100
 ```
 
 ### Refund Path
 ```python
 def test_refund_on_timeout():
-    alice_offer = alice.swapoffer(sell_bot=100, for_btc=0.01)
+    alice_offer = alice.swapoffer(sell_rng=100, for_btc=0.01)
     bob.swapaccept(alice_offer.id)
     
     # Alice creates BTC HTLC but Bob never claims
@@ -278,10 +278,10 @@ def test_refund_on_timeout():
     
     # Wait for timeout
     wait_for_blocks(btc_chain, 144)  # 24 hours
-    wait_for_blocks(bot_chain, 720)  # 12 hours
+    wait_for_blocks(rng_chain, 720)  # 12 hours
     
     # Both parties should be refunded
-    assert alice.bot_balance == original_alice_bot
+    assert alice.rng_balance == original_alice_rng
     assert bob.btc_balance == original_bob_btc
 ```
 
@@ -291,7 +291,7 @@ def test_secret_extraction():
     # Alice tries to claim BTC without letting Bob claim BTC
     # (This should be impossible due to on-chain secret revelation)
     
-    alice_offer = alice.swapoffer(sell_bot=100, for_btc=0.01)
+    alice_offer = alice.swapoffer(sell_rng=100, for_btc=0.01)
     bob.swapaccept(alice_offer.id)
     
     # Alice claims BTC (reveals secret S on Bitcoin chain)
@@ -301,11 +301,11 @@ def test_secret_extraction():
     secret = bob.extract_secret_from_btc_chain()
     
     # Bob claims BTC using extracted secret
-    bob.claim_bot(secret)
+    bob.claim_rng(secret)
     
     # Both parties have swapped
     assert alice.btc_balance >= 0.01
-    assert bob.bot_balance >= 100
+    assert bob.rng_balance >= 100
 ```
 
 ---

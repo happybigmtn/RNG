@@ -97,7 +97,7 @@ std::shared_ptr<CWallet> GetDefaultWallet(WalletContext& context, size_t& count)
 std::shared_ptr<CWallet> GetWallet(WalletContext& context, const std::string& name);
 std::shared_ptr<CWallet> LoadWallet(WalletContext& context, const std::string& name, std::optional<bool> load_on_start, const DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings);
 std::shared_ptr<CWallet> CreateWallet(WalletContext& context, const std::string& name, std::optional<bool> load_on_start, DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings);
-std::shared_ptr<CWallet> RestoreWallet(WalletContext& context, const fs::path& backup_file, const std::string& wallet_name, std::optional<bool> load_on_start, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings, bool load_after_restore = true, bool allow_unnamed = false);
+std::shared_ptr<CWallet> RestoreWallet(WalletContext& context, const fs::path& backup_file, const std::string& wallet_name, std::optional<bool> load_on_start, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings, bool load_after_restore = true);
 std::unique_ptr<interfaces::Handler> HandleLoadWallet(WalletContext& context, LoadWalletFn load_wallet);
 void NotifyWalletLoaded(WalletContext& context, const std::shared_ptr<CWallet>& wallet);
 std::unique_ptr<WalletDatabase> MakeWalletDatabase(const std::string& name, const DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error);
@@ -137,9 +137,9 @@ static const bool DEFAULT_DISABLE_WALLET = false;
 static const bool DEFAULT_WALLETCROSSCHAIN = false;
 //! -maxtxfee default
 constexpr CAmount DEFAULT_TRANSACTION_MAXFEE{COIN / 10};
-//! Discourage users to set fees higher than this amount (in botoshis) per kB
+//! Discourage users to set fees higher than this amount (in roshis) per kB
 constexpr CAmount HIGH_TX_FEE_PER_KB{COIN / 100};
-//! -maxtxfee will warn if called with a higher fee than this amount (in botoshis)
+//! -maxtxfee will warn if called with a higher fee than this amount (in roshis)
 constexpr CAmount HIGH_MAX_TX_FEE{100 * HIGH_TX_FEE_PER_KB};
 //! Pre-calculated constants for input size estimation in *virtual size*
 static constexpr size_t DUMMY_NESTED_P2WPKH_INPUT_SIZE = 91;
@@ -740,7 +740,7 @@ public:
      * CWallet::TransactionChangeType for details).
      */
     std::optional<OutputType> m_default_change_type{};
-    /** Absolute maximum transaction fee (in botoshis) used by default for the wallet */
+    /** Absolute maximum transaction fee (in roshis) used by default for the wallet */
     CAmount m_default_max_tx_fee{DEFAULT_TRANSACTION_MAXFEE};
 
     /** Number of pre-generated keys/scripts by each spkm (part of the look-ahead process, used to detect payments) */

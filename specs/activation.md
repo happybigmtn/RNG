@@ -1,12 +1,12 @@
 # Soft Fork Activation Specification
 
 ## Topic
-The consensus rules inherited from Bitcoin and their activation status in Botcoin.
+The consensus rules inherited from Bitcoin and their activation status in RNG.
 
 ## Behavioral Requirements
 
 ### Activation Philosophy
-Botcoin activates **all mature Bitcoin consensus upgrades from genesis** (height 0). This:
+RNG activates **all mature Bitcoin consensus upgrades from genesis** (height 0). This:
 - Simplifies codebase (no activation logic needed)
 - Provides modern feature set immediately
 - Avoids technical debt from legacy code paths
@@ -91,7 +91,7 @@ Standard Bitcoin disabled opcodes remain disabled:
 - OP_2MUL, OP_2DIV, OP_MUL, OP_DIV, OP_MOD
 - OP_LSHIFT, OP_RSHIFT
 
-**Rationale**: These were disabled in Bitcoin due to DoS concerns. Botcoin inherits this for safety.
+**Rationale**: These were disabled in Bitcoin due to DoS concerns. RNG inherits this for safety.
 
 ### OP_RETURN Data Carrier
 - Maximum size: **80 bytes** of data

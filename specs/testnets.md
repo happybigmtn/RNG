@@ -1,7 +1,7 @@
 # Test Networks Specification
 
 ## Topic
-The parameters for Botcoin's test and development networks.
+The parameters for RNG's test and development networks.
 
 ## Behavioral Requirements
 
@@ -30,7 +30,7 @@ The parameters for Botcoin's test and development networks.
 |------|--------|--------------|
 | P2PKH | **t** | 111 (0x6F) |
 | P2SH | **s** | 196 (0xC4) |
-| Bech32 HRP | **tbot** | N/A |
+| Bech32 HRP | **trng** | N/A |
 | WIF | **c** | 239 (0xEF) |
 | xpub | `tpub` | 0x043587CF |
 | xprv | `tprv` | 0x04358394 |
@@ -55,8 +55,8 @@ The parameters for Botcoin's test and development networks.
 #### DNS Seeds
 
 ```
-testnet-seed1.botcoin.network
-testnet-seed2.botcoin.network
+testnet-seed1.rng.network
+testnet-seed2.rng.network
 ```
 
 ### Regtest Parameters
@@ -80,7 +80,7 @@ Same as testnet (reuse for simplicity):
 |------|--------|--------------|
 | P2PKH | **t** | 111 (0x6F) |
 | P2SH | **s** | 196 (0xC4) |
-| Bech32 HRP | **tbot** | N/A |
+| Bech32 HRP | **trng** | N/A |
 
 #### Special Rules
 
@@ -93,10 +93,10 @@ Same as testnet (reuse for simplicity):
 
 ```bash
 # Start regtest node
-botcoind -regtest -daemon
+rngd -regtest -daemon
 
 # Generate 101 blocks (mature coinbase)
-botcoin-cli -regtest generatetoaddress 101 <address>
+rng-cli -regtest generatetoaddress 101 <address>
 
 # Run tests
 ./test_framework.py --regtest
@@ -156,7 +156,7 @@ class CRegTestParams : public CChainParams {
 1. [ ] Testnet uses different network magic than mainnet
 2. [ ] Testnet uses different ports than mainnet
 3. [ ] Testnet addresses start with 't' (P2PKH)
-4. [ ] Testnet bech32 uses 'tbot' HRP
+4. [ ] Testnet bech32 uses 'trng' HRP
 5. [ ] Testnet allows minimum difficulty blocks
 6. [ ] Regtest can mine blocks instantly via RPC
 7. [ ] Regtest doesn't try peer discovery

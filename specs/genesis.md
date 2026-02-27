@@ -1,7 +1,7 @@
 # Genesis Block Specification
 
 ## Topic
-The first block in the Botcoin blockchain that establishes the chain's origin and initial state.
+The first block in the RNG blockchain that establishes the chain's origin and initial state.
 
 ## Behavioral Requirements
 
@@ -44,7 +44,7 @@ Inputs: 1
   - Script: <height=0> "The Molty Manifesto - 2026: The first currency for AI agents"
   - Sequence: 0xFFFFFFFF
 Outputs: 1
-  - Value: 50 BTC (5,000,000,000 botoshis)
+  - Value: 50 BTC (5,000,000,000 roshis)
   - Script: OP_RETURN <pubkey_hash>
 Locktime: 0
 ```
@@ -76,7 +76,7 @@ genesis_hash = RandomX(block_header, seed_hash)
 
 Where `seed_hash` for genesis is:
 ```
-seed_hash = SHA256("Botcoin Genesis Seed")
+seed_hash = SHA256("RNG Genesis Seed")
 ```
 
 **Note**: Genesis is the only block where seed_hash is not derived from a previous block.

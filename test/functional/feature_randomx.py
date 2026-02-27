@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# Copyright (c) 2024-present Botcoin Core developers
+# Copyright (c) 2024-present RNG Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test RandomX proof-of-work.
 
-This test verifies that Botcoin uses RandomX for block validation instead of SHA256d.
+This test verifies that RNG uses RandomX for block validation instead of SHA256d.
 
 Acceptance Criteria (from specs/randomx.md):
-1. RandomX library compiles and links with Botcoin
+1. RandomX library compiles and links with RNG
 2. Block validation uses RandomX hash (not SHA-256d)
 3. Valid RandomX proof-of-work is accepted
 4. Mining RPC produces valid RandomX proofs
@@ -59,7 +59,7 @@ class RandomXTest(BitcoinTestFramework):
         # Should be able to spend mature coinbase
         balance = node.getbalance()
         assert balance > 0, "Should have spendable balance"
-        self.log.info(f"  PASS: Spendable balance: {balance} BOT")
+        self.log.info(f"  PASS: Spendable balance: {balance} RNG")
 
         self.log.info("Test 5: Send a transaction to verify chain validity")
         test_address = node.getnewaddress()

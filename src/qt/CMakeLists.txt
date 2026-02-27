@@ -148,7 +148,7 @@ target_link_libraries(bitcoinqt
     Qt6::Widgets
   PRIVATE
     core_interface
-    botcoin_cli
+    rng_cli
     leveldb
     Boost::headers
     $<TARGET_NAME_IF_EXISTS:QRencode::QRencode>
@@ -222,7 +222,7 @@ if(ENABLE_WALLET)
   )
   target_link_libraries(bitcoinqt
     PRIVATE
-      botcoin_wallet
+      rng_wallet
       Qt6::Network
   )
 endif()
@@ -255,41 +255,41 @@ endif()
 
 add_subdirectory(locale)
 
-add_executable(botcoin-qt
+add_executable(rng-qt
   main.cpp
   ../init/bitcoin-qt.cpp
 )
 
-add_windows_resources(botcoin-qt res/bitcoin-qt-res.rc)
-add_windows_application_manifest(botcoin-qt)
+add_windows_resources(rng-qt res/bitcoin-qt-res.rc)
+add_windows_application_manifest(rng-qt)
 
-target_link_libraries(botcoin-qt
+target_link_libraries(rng-qt
   core_interface
   bitcoinqt
-  botcoin_node
+  rng_node
 )
 
-import_plugins(botcoin-qt)
-install_binary_component(botcoin-qt HAS_MANPAGE)
+import_plugins(rng-qt)
+install_binary_component(rng-qt HAS_MANPAGE)
 if(WIN32)
-  set_target_properties(botcoin-qt PROPERTIES WIN32_EXECUTABLE TRUE)
+  set_target_properties(rng-qt PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
 if(ENABLE_IPC)
-  add_executable(bitcoin-gui
+  add_executable(rng-gui
     main.cpp
     ../init/bitcoin-gui.cpp
   )
-  target_link_libraries(bitcoin-gui
+  target_link_libraries(rng-gui
     core_interface
     bitcoinqt
-    botcoin_node
+    rng_node
     bitcoin_ipc
   )
-  import_plugins(bitcoin-gui)
-  install_binary_component(bitcoin-gui INTERNAL)
+  import_plugins(rng-gui)
+  install_binary_component(rng-gui INTERNAL)
   if(WIN32)
-    set_target_properties(bitcoin-gui PROPERTIES WIN32_EXECUTABLE TRUE)
+    set_target_properties(rng-gui PROPERTIES WIN32_EXECUTABLE TRUE)
   endif()
 endif()
 

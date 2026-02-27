@@ -28,7 +28,7 @@ static const DatabaseFormat DATABASE_FORMATS[] = {
        DatabaseFormat::SQLITE,
 };
 
-const std::string ADDRESS_BCRT1_UNSPENDABLE = "tbot1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxhvdlq";
+const std::string ADDRESS_BCRT1_UNSPENDABLE = "trng1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqve7sjg";
 
 std::unique_ptr<CWallet> CreateSyncedWallet(interfaces::Chain& chain, CChain& cchain, const CKey& key);
 

@@ -4,12 +4,12 @@
 
 include(GNUInstallDirs)
 
-# TODO: libbotcoinkernel is a work in progress consensus engine
+# TODO: librngkernel is a work in progress consensus engine
 #       library, as more and more modules are decoupled from the
 #       consensus engine, this list will shrink to only those
 #       which are absolutely necessary.
-add_library(botcoinkernel
-  botcoinkernel.cpp
+add_library(rngkernel
+  rngkernel.cpp
   chain.cpp
   checks.cpp
   chainparams.cpp
@@ -78,12 +78,12 @@ add_library(botcoinkernel
   ../validation.cpp
   ../validationinterface.cpp
   ../versionbits.cpp
-  $<TARGET_OBJECTS:botcoin_clientversion>
-  $<TARGET_OBJECTS:botcoin_crypto>
+  $<TARGET_OBJECTS:rng_clientversion>
+  $<TARGET_OBJECTS:rng_crypto>
   $<TARGET_OBJECTS:leveldb>
   $<TARGET_OBJECTS:crc32c>
 )
-target_link_libraries(botcoinkernel
+target_link_libraries(rngkernel
   PRIVATE
     core_interface
     secp256k1_objs
@@ -93,30 +93,30 @@ target_link_libraries(botcoinkernel
     Boost::headers
 )
 
-target_include_directories(botcoinkernel PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/leveldb/include>)
+target_include_directories(rngkernel PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/leveldb/include>)
 
-# Add a convenience libbotcoinkernel target as a synonym for botcoinkernel.
-add_custom_target(libbotcoinkernel)
-add_dependencies(libbotcoinkernel botcoinkernel)
+# Add a convenience librngkernel target as a synonym for rngkernel.
+add_custom_target(librngkernel)
+add_dependencies(librngkernel rngkernel)
 
-get_target_property(botcoinkernel_type botcoinkernel TYPE)
-if(botcoinkernel_type STREQUAL "STATIC_LIBRARY")
-  target_compile_definitions(botcoinkernel PUBLIC BITCOINKERNEL_STATIC)
+get_target_property(rngkernel_type rngkernel TYPE)
+if(rngkernel_type STREQUAL "STATIC_LIBRARY")
+  target_compile_definitions(rngkernel PUBLIC BITCOINKERNEL_STATIC)
 endif()
 
-configure_file(${PROJECT_SOURCE_DIR}/libbotcoinkernel.pc.in ${PROJECT_BINARY_DIR}/libbotcoinkernel.pc @ONLY)
-install(FILES ${PROJECT_BINARY_DIR}/libbotcoinkernel.pc DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT libbotcoinkernel)
+configure_file(${PROJECT_SOURCE_DIR}/librngkernel.pc.in ${PROJECT_BINARY_DIR}/librngkernel.pc @ONLY)
+install(FILES ${PROJECT_BINARY_DIR}/librngkernel.pc DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT librngkernel)
 
-install(TARGETS botcoinkernel
+install(TARGETS rngkernel
   RUNTIME
     DESTINATION ${CMAKE_INSTALL_BINDIR}
-    COMPONENT libbotcoinkernel
+    COMPONENT librngkernel
   LIBRARY
     DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    COMPONENT libbotcoinkernel
+    COMPONENT librngkernel
   ARCHIVE
     DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    COMPONENT libbotcoinkernel
+    COMPONENT librngkernel
 )
 
-install(FILES botcoinkernel.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT libbotcoinkernel)
+install(FILES rngkernel.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT librngkernel)

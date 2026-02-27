@@ -34,7 +34,7 @@
 #include <utility>
 #include <variant>
 
-const char * const BITCOIN_CONF_FILENAME = "botcoin.conf";
+const char * const BITCOIN_CONF_FILENAME = "rng.conf";
 const char * const BITCOIN_SETTINGS_FILENAME = "settings.json";
 
 ArgsManager gArgs;
@@ -736,18 +736,18 @@ bool HasTestOption(const ArgsManager& args, const std::string& test_option)
 fs::path GetDefaultDataDir()
 {
     // Windows:
-    //   old: C:\Users\Username\AppData\Roaming\Botcoin
-    //   new: C:\Users\Username\AppData\Local\Botcoin
-    // macOS: ~/Library/Application Support/Botcoin
-    // Unix-like: ~/.botcoin
+    //   old: C:\Users\Username\AppData\Roaming\RNG
+    //   new: C:\Users\Username\AppData\Local\RNG
+    // macOS: ~/Library/Application Support/RNG
+    // Unix-like: ~/.rng
 #ifdef WIN32
     // Windows
     // Check for existence of datadir in old location and keep it there
-    fs::path legacy_path = GetSpecialFolderPath(CSIDL_APPDATA) / "Botcoin";
+    fs::path legacy_path = GetSpecialFolderPath(CSIDL_APPDATA) / "RNG";
     if (fs::exists(legacy_path)) return legacy_path;
 
     // Otherwise, fresh installs can start in the new, "proper" location
-    return GetSpecialFolderPath(CSIDL_LOCAL_APPDATA) / "Botcoin";
+    return GetSpecialFolderPath(CSIDL_LOCAL_APPDATA) / "RNG";
 #else
     fs::path pathRet;
     char* pszHome = getenv("HOME");
@@ -757,10 +757,10 @@ fs::path GetDefaultDataDir()
         pathRet = fs::path(pszHome);
 #ifdef __APPLE__
     // macOS
-    return pathRet / "Library/Application Support/Botcoin";
+    return pathRet / "Library/Application Support/RNG";
 #else
     // Unix-like
-    return pathRet / ".botcoin";
+    return pathRet / ".rng";
 #endif
 #endif
 }

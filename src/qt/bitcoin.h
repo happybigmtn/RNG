@@ -5,7 +5,7 @@
 #ifndef BITCOIN_QT_BITCOIN_H
 #define BITCOIN_QT_BITCOIN_H
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 
 #include <interfaces/node.h>
 #include <qt/initexecutor.h>

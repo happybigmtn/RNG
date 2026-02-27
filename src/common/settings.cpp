@@ -4,7 +4,7 @@
 
 #include <common/settings.h>
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 
 #include <tinyformat.h>
 #include <univalue.h>

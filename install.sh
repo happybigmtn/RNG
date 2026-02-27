@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Botcoin Universal Installer
+# RNG Universal Installer
 # Works on: Linux (x86_64, arm64), macOS (Intel, Apple Silicon), Windows (WSL)
-# Usage: curl -fsSL https://raw.githubusercontent.com/happybigmtn/botcoin/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/happybigmtn/rng/main/install.sh | bash
 
 set -e
 
-VERSION="${BOTCOIN_VERSION:-v2.1.0}"
-INSTALL_DIR="${BOTCOIN_INSTALL_DIR:-$HOME/.local/bin}"
-DATA_DIR="${BOTCOIN_DATA_DIR:-$HOME/.botcoin}"
-REPO="happybigmtn/botcoin"
+VERSION="${RNG_VERSION:-v2.1.0}"
+INSTALL_DIR="${RNG_INSTALL_DIR:-$HOME/.local/bin}"
+DATA_DIR="${RNG_DATA_DIR:-$HOME/.rng}"
+REPO="happybigmtn/rng"
 GITHUB_URL="https://github.com/$REPO"
 
 # Flags (safe defaults)
@@ -19,21 +19,21 @@ NO_CONFIG=0
 
 usage() {
     cat <<'EOF'
-Botcoin Universal Installer
+RNG Universal Installer
 
 Usage: ./install.sh [flags]
 
 Flags:
-  --force       Reinstall even if botcoind is already present
+  --force       Reinstall even if rngd is already present
   --add-path    Modify shell rc to add install dir to PATH (opt-in)
   --no-verify   Skip checksum verification (NOT recommended)
-  --no-config   Do not create ~/.botcoin/botcoin.conf
+  --no-config   Do not create ~/.rng/rng.conf
   -h, --help    Show this help
 
 Environment variables:
-  BOTCOIN_VERSION      Version to install (default: v2.1.0)
-  BOTCOIN_INSTALL_DIR  Install directory (default: ~/.local/bin)
-  BOTCOIN_DATA_DIR     Data directory (default: ~/.botcoin)
+  RNG_VERSION      Version to install (default: v2.1.0)
+  RNG_INSTALL_DIR  Install directory (default: ~/.local/bin)
+  RNG_DATA_DIR     Data directory (default: ~/.rng)
 
 Examples:
   # Quick install (verify checksums, no dotfile changes)
@@ -43,7 +43,7 @@ Examples:
   ./install.sh --add-path
 
   # Reinstall specific version
-  BOTCOIN_VERSION=v1.0.0 ./install.sh --force
+  RNG_VERSION=v1.0.0 ./install.sh --force
 EOF
 }
 
@@ -142,9 +142,9 @@ verify_checksums() {
 
 # Download and install pre-built binary
 install_binary() {
-    info "Downloading Botcoin $VERSION for $PLATFORM..."
+    info "Downloading RNG $VERSION for $PLATFORM..."
     
-    TARBALL="botcoin-${VERSION}-${PLATFORM}.tar.gz"
+    TARBALL="rng-${VERSION}-${PLATFORM}.tar.gz"
     URL="$GITHUB_URL/releases/download/${VERSION}/${TARBALL}"
     
     TMPDIR=$(mktemp -d)
@@ -167,8 +167,8 @@ install_binary() {
     
     # Install to user directory (no sudo needed)
     mkdir -p "$INSTALL_DIR"
-    cp botcoind botcoin-cli "$INSTALL_DIR/"
-    chmod +x "$INSTALL_DIR/botcoind" "$INSTALL_DIR/botcoin-cli"
+    cp rngd rng-cli "$INSTALL_DIR/"
+    chmod +x "$INSTALL_DIR/rngd" "$INSTALL_DIR/rng-cli"
     
     cd /
     rm -rf "$TMPDIR"
@@ -210,8 +210,8 @@ build_from_source() {
     cd "$TMPDIR"
     
     info "Cloning repository..."
-    git clone --depth 1 "$GITHUB_URL.git" botcoin
-    cd botcoin
+    git clone --depth 1 "$GITHUB_URL.git" rng
+    cd rng
     
     info "Getting RandomX..."
     git clone --branch v1.2.1 --depth 1 https://github.com/tevador/RandomX.git src/crypto/randomx
@@ -227,8 +227,8 @@ build_from_source() {
     cmake --build build -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)
     
     mkdir -p "$INSTALL_DIR"
-    cp build/bin/botcoind build/bin/botcoin-cli "$INSTALL_DIR/"
-    chmod +x "$INSTALL_DIR/botcoind" "$INSTALL_DIR/botcoin-cli"
+    cp build/bin/rngd build/bin/rng-cli "$INSTALL_DIR/"
+    chmod +x "$INSTALL_DIR/rngd" "$INSTALL_DIR/rng-cli"
     
     cd /
     rm -rf "$TMPDIR"
@@ -245,14 +245,14 @@ setup_config() {
     
     mkdir -p "$DATA_DIR"
     
-    if [ -f "$DATA_DIR/botcoin.conf" ]; then
-        warn "Config already exists at $DATA_DIR/botcoin.conf"
+    if [ -f "$DATA_DIR/rng.conf" ]; then
+        warn "Config already exists at $DATA_DIR/rng.conf"
         return
     fi
     
     RPCPASS=$(openssl rand -hex 16 2>/dev/null || head -c 32 /dev/urandom | xxd -p | head -c 32)
     
-    cat > "$DATA_DIR/botcoin.conf" << EOF
+    cat > "$DATA_DIR/rng.conf" << EOF
 server=1
 daemon=1
 rpcuser=agent
@@ -271,7 +271,7 @@ addnode=185.218.126.23:8433
 addnode=185.239.209.227:8433
 EOF
     
-    success "Config created at $DATA_DIR/botcoin.conf"
+    success "Config created at $DATA_DIR/rng.conf"
 }
 
 # Add to PATH (only if --add-path)
@@ -309,20 +309,20 @@ setup_path() {
 verify_install() {
     export PATH="$INSTALL_DIR:$PATH"
     
-    if ! command -v botcoind &>/dev/null; then
-        error "botcoind not found after installation"
+    if ! command -v rngd &>/dev/null; then
+        error "rngd not found after installation"
     fi
     
     info "Verifying installation..."
-    "$INSTALL_DIR/botcoind" --version
-    success "Botcoin installed successfully!"
+    "$INSTALL_DIR/rngd" --version
+    success "RNG installed successfully!"
 }
 
 # Print next steps
 print_next_steps() {
     echo ""
     echo -e "${GREEN}════════════════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}  Botcoin installed successfully!${NC}"
+    echo -e "${GREEN}  RNG installed successfully!${NC}"
     echo -e "${GREEN}════════════════════════════════════════════════════════════${NC}"
     echo ""
     echo "Installed to: $INSTALL_DIR"
@@ -330,24 +330,24 @@ print_next_steps() {
     echo "Next steps:"
     echo ""
     echo "  1. Start the daemon:"
-    echo "     $INSTALL_DIR/botcoind -daemon"
+    echo "     $INSTALL_DIR/rngd -daemon"
     echo ""
     echo "  2. Check status (wait 10s for startup):"
-    echo "     $INSTALL_DIR/botcoin-cli getblockchaininfo"
+    echo "     $INSTALL_DIR/rng-cli getblockchaininfo"
     echo ""
     echo "  3. Create wallet and mine:"
-    echo "     $INSTALL_DIR/botcoin-cli createwallet \"miner\""
-    echo "     ADDR=\$($INSTALL_DIR/botcoin-cli -rpcwallet=miner getnewaddress)"
-    echo "     $INSTALL_DIR/botcoin-cli -rpcwallet=miner generatetoaddress 1 \"\$ADDR\""
+    echo "     $INSTALL_DIR/rng-cli createwallet \"miner\""
+    echo "     ADDR=\$($INSTALL_DIR/rng-cli -rpcwallet=miner getnewaddress)"
+    echo "     $INSTALL_DIR/rng-cli -rpcwallet=miner generatetoaddress 1 \"\$ADDR\""
     echo ""
     echo "  4. Stop daemon:"
-    echo "     $INSTALL_DIR/botcoin-cli stop"
+    echo "     $INSTALL_DIR/rng-cli stop"
     echo ""
     echo "Uninstall:"
-    echo "  rm -rf $INSTALL_DIR/botcoin* $DATA_DIR"
+    echo "  rm -rf $INSTALL_DIR/rng* $DATA_DIR"
     echo ""
     echo "Docs: https://github.com/$REPO"
-    echo "Skill: https://clawhub.ai/happybigmtn/botcoin-miner"
+    echo "Skill: https://clawhub.ai/happybigmtn/rng-miner"
     echo ""
 }
 
@@ -357,18 +357,18 @@ main() {
     
     echo ""
     echo "╔══════════════════════════════════════════╗"
-    echo "║  Botcoin Installer                       ║"
+    echo "║  RNG Installer                       ║"
     echo "║  The cryptocurrency for AI agents        ║"
     echo "╚══════════════════════════════════════════╝"
     echo ""
     
     # Check if already installed (idempotent)
-    if command -v botcoind &>/dev/null && [ "$FORCE" -ne 1 ]; then
-        INSTALLED_VERSION=$(botcoind --version 2>/dev/null | head -1 || echo "unknown")
-        success "Botcoin already installed: $INSTALLED_VERSION"
-        info "Location: $(which botcoind)"
+    if command -v rngd &>/dev/null && [ "$FORCE" -ne 1 ]; then
+        INSTALLED_VERSION=$(rngd --version 2>/dev/null | head -1 || echo "unknown")
+        success "RNG already installed: $INSTALLED_VERSION"
+        info "Location: $(which rngd)"
         info "To reinstall, run: $0 --force"
-        info "To uninstall: rm -rf $INSTALL_DIR/botcoin* $DATA_DIR"
+        info "To uninstall: rm -rf $INSTALL_DIR/rng* $DATA_DIR"
         exit 0
     fi
     

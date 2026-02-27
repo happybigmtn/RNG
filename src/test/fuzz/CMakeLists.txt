@@ -143,9 +143,9 @@ target_link_libraries(fuzz
   core_interface
   fuzzer_interface
   test_fuzz
-  botcoin_cli
-  botcoin_common
-  botcoin_util
+  rng_cli
+  rng_common
+  rng_util
   minisketch
   leveldb
   univalue

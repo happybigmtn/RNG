@@ -15,7 +15,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 
 #ifdef USE_QRCODE
 #include <qrencode.h>

@@ -13,7 +13,7 @@ The consensus rules that govern block creation, rewards, and difficulty adjustme
 - Initial block reward: **50 BTC**
 - Halving interval: **2,100,000 blocks** (~4 years at 60s blocks)
 - Maximum supply: **21,000,000 BTC** (matches Bitcoin's proven scarcity model)
-- Smallest unit: **1 botoshi** = 0.00000001 BTC
+- Smallest unit: **1 roshi** = 0.00000001 BTC
 
 ### Difficulty Adjustment
 - Retarget interval: **2016 blocks** (~1.4 days at 60s target)

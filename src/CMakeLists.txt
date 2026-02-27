@@ -4,7 +4,7 @@
 
 include(AddWindowsResources)
 
-configure_file(${PROJECT_SOURCE_DIR}/cmake/botcoin-build-config.h.in botcoin-build-config.h USE_SOURCE_PERMISSIONS @ONLY)
+configure_file(${PROJECT_SOURCE_DIR}/cmake/rng-build-config.h.in rng-build-config.h USE_SOURCE_PERMISSIONS @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 #=============================
@@ -40,19 +40,19 @@ if(NOT CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
 endif()
 
 add_custom_target(generate_build_info
-  BYPRODUCTS ${PROJECT_BINARY_DIR}/src/botcoin-build-info.h
-  COMMAND ${CMAKE_COMMAND} -DBUILD_INFO_HEADER_PATH=${PROJECT_BINARY_DIR}/src/botcoin-build-info.h -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -P ${PROJECT_SOURCE_DIR}/cmake/script/GenerateBuildInfo.cmake
-  COMMENT "Generating botcoin-build-info.h"
+  BYPRODUCTS ${PROJECT_BINARY_DIR}/src/rng-build-info.h
+  COMMAND ${CMAKE_COMMAND} -DBUILD_INFO_HEADER_PATH=${PROJECT_BINARY_DIR}/src/rng-build-info.h -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -P ${PROJECT_SOURCE_DIR}/cmake/script/GenerateBuildInfo.cmake
+  COMMENT "Generating rng-build-info.h"
   VERBATIM
 )
-add_library(botcoin_clientversion STATIC
+add_library(rng_clientversion STATIC
   clientversion.cpp
 )
-target_link_libraries(botcoin_clientversion
+target_link_libraries(rng_clientversion
   PRIVATE
     core_interface
 )
-add_dependencies(botcoin_clientversion generate_build_info)
+add_dependencies(rng_clientversion generate_build_info)
 
 add_subdirectory(crypto)
 add_subdirectory(util)
@@ -60,7 +60,7 @@ if(ENABLE_IPC)
   add_subdirectory(ipc)
 endif()
 
-add_library(botcoin_consensus STATIC EXCLUDE_FROM_ALL
+add_library(rng_consensus STATIC EXCLUDE_FROM_ALL
   arith_uint256.cpp
   consensus/merkle.cpp
   consensus/tx_check.cpp
@@ -73,10 +73,10 @@ add_library(botcoin_consensus STATIC EXCLUDE_FROM_ALL
   script/script_error.cpp
   uint256.cpp
 )
-target_link_libraries(botcoin_consensus
+target_link_libraries(rng_consensus
   PRIVATE
     core_interface
-    botcoin_crypto
+    rng_crypto
     secp256k1
 )
 
@@ -85,8 +85,8 @@ if(WITH_ZMQ)
 endif()
 
 # Home for common functionality shared by different executables and libraries.
-# Similar to `botcoin_util` library, but higher-level.
-add_library(botcoin_common STATIC EXCLUDE_FROM_ALL
+# Similar to `rng_util` library, but higher-level.
+add_library(rng_common STATIC EXCLUDE_FROM_ALL
   addresstype.cpp
   base58.cpp
   bech32.cpp
@@ -138,11 +138,11 @@ add_library(botcoin_common STATIC EXCLUDE_FROM_ALL
   script/signingprovider.cpp
   script/solver.cpp
 )
-target_link_libraries(botcoin_common
+target_link_libraries(rng_common
   PRIVATE
     core_interface
-    botcoin_consensus
-    botcoin_util
+    rng_consensus
+    rng_util
     univalue
     secp256k1
     Boost::headers
@@ -156,27 +156,27 @@ if(ENABLE_WALLET)
   add_subdirectory(wallet)
 
   if(BUILD_WALLET_TOOL)
-    add_executable(botcoin-wallet
+    add_executable(rng-wallet
       bitcoin-wallet.cpp
       init/bitcoin-wallet.cpp
       wallet/wallettool.cpp
     )
-    add_windows_resources(botcoin-wallet bitcoin-wallet-res.rc)
-    add_windows_application_manifest(botcoin-wallet)
-    target_link_libraries(botcoin-wallet
+    add_windows_resources(rng-wallet bitcoin-wallet-res.rc)
+    add_windows_application_manifest(rng-wallet)
+    target_link_libraries(rng-wallet
       core_interface
-      botcoin_wallet
-      botcoin_common
-      botcoin_util
+      rng_wallet
+      rng_common
+      rng_util
       Boost::headers
     )
-    install_binary_component(botcoin-wallet HAS_MANPAGE)
+    install_binary_component(rng-wallet HAS_MANPAGE)
   endif()
 endif()
 
 
-# P2P and RPC server functionality used by `botcoind` and `botcoin-qt` executables.
-add_library(botcoin_node STATIC EXCLUDE_FROM_ALL
+# P2P and RPC server functionality used by `rngd` and `rng-qt` executables.
+add_library(rng_node STATIC EXCLUDE_FROM_ALL
   addrdb.cpp
   addrman.cpp
   banman.cpp
@@ -271,15 +271,15 @@ add_library(botcoin_node STATIC EXCLUDE_FROM_ALL
   validation.cpp
   validationinterface.cpp
   versionbits.cpp
-  $<$<TARGET_EXISTS:botcoin_wallet>:wallet/init.cpp>
-  $<$<NOT:$<TARGET_EXISTS:botcoin_wallet>>:dummywallet.cpp>
+  $<$<TARGET_EXISTS:rng_wallet>:wallet/init.cpp>
+  $<$<NOT:$<TARGET_EXISTS:rng_wallet>>:dummywallet.cpp>
 )
-target_link_libraries(botcoin_node
+target_link_libraries(rng_node
   PRIVATE
     core_interface
-    botcoin_common
-    botcoin_util
-    $<TARGET_NAME_IF_EXISTS:botcoin_zmq>
+    rng_common
+    rng_util
+    $<TARGET_NAME_IF_EXISTS:rng_zmq>
     leveldb
     minisketch
     univalue
@@ -290,97 +290,97 @@ target_link_libraries(botcoin_node
     $<TARGET_NAME_IF_EXISTS:USDT::headers>
 )
 
-# Botcoin wrapper executable that can call other executables.
+# RNG wrapper executable that can call other executables.
 if(BUILD_BITCOIN_BIN)
-  add_executable(botcoin bitcoin.cpp)
-  add_windows_resources(botcoin bitcoin-res.rc)
-  add_windows_application_manifest(botcoin)
-  target_link_libraries(botcoin core_interface botcoin_common botcoin_util)
-  install_binary_component(botcoin HAS_MANPAGE)
+  add_executable(rng bitcoin.cpp)
+  add_windows_resources(rng bitcoin-res.rc)
+  add_windows_application_manifest(rng)
+  target_link_libraries(rng core_interface rng_common rng_util)
+  install_binary_component(rng HAS_MANPAGE)
 endif()
 
-# Botcoin Core botcoind.
+# RNG Core rngd.
 if(BUILD_DAEMON)
-  add_executable(botcoind
+  add_executable(rngd
     bitcoind.cpp
     init/bitcoind.cpp
   )
-  add_windows_resources(botcoind bitcoind-res.rc)
-  add_windows_application_manifest(botcoind)
-  target_link_libraries(botcoind
+  add_windows_resources(rngd bitcoind-res.rc)
+  add_windows_application_manifest(rngd)
+  target_link_libraries(rngd
     core_interface
-    botcoin_node
-    $<TARGET_NAME_IF_EXISTS:botcoin_wallet>
+    rng_node
+    $<TARGET_NAME_IF_EXISTS:rng_wallet>
   )
-  install_binary_component(botcoind HAS_MANPAGE)
+  install_binary_component(rngd HAS_MANPAGE)
 endif()
 if(ENABLE_IPC AND BUILD_DAEMON)
-  add_executable(botcoin-node
+  add_executable(rng-node
     bitcoind.cpp
     init/bitcoin-node.cpp
   )
-  target_link_libraries(botcoin-node
+  target_link_libraries(rng-node
     core_interface
-    botcoin_node
-    botcoin_ipc
-    $<TARGET_NAME_IF_EXISTS:botcoin_wallet>
+    rng_node
+    rng_ipc
+    $<TARGET_NAME_IF_EXISTS:rng_wallet>
   )
-  install_binary_component(botcoin-node INTERNAL)
+  install_binary_component(rng-node INTERNAL)
 endif()
 
 
-add_library(botcoin_cli STATIC EXCLUDE_FROM_ALL
+add_library(rng_cli STATIC EXCLUDE_FROM_ALL
   compat/stdin.cpp
   rpc/client.cpp
 )
-target_link_libraries(botcoin_cli
+target_link_libraries(rng_cli
   PUBLIC
     core_interface
     univalue
 )
 
 
-# Botcoin Core RPC client
+# RNG Core RPC client
 if(BUILD_CLI)
-  add_executable(botcoin-cli bitcoin-cli.cpp)
-  add_windows_resources(botcoin-cli bitcoin-cli-res.rc)
-  add_windows_application_manifest(botcoin-cli)
-  target_link_libraries(botcoin-cli
+  add_executable(rng-cli bitcoin-cli.cpp)
+  add_windows_resources(rng-cli bitcoin-cli-res.rc)
+  add_windows_application_manifest(rng-cli)
+  target_link_libraries(rng-cli
     core_interface
-    botcoin_cli
-    botcoin_common
-    botcoin_util
+    rng_cli
+    rng_common
+    rng_util
     libevent::core
     libevent::extra
   )
-  install_binary_component(botcoin-cli HAS_MANPAGE)
+  install_binary_component(rng-cli HAS_MANPAGE)
 endif()
 
 
 if(BUILD_TX)
-  add_executable(botcoin-tx bitcoin-tx.cpp)
-  add_windows_resources(botcoin-tx bitcoin-tx-res.rc)
-  add_windows_application_manifest(botcoin-tx)
-  target_link_libraries(botcoin-tx
+  add_executable(rng-tx bitcoin-tx.cpp)
+  add_windows_resources(rng-tx bitcoin-tx-res.rc)
+  add_windows_application_manifest(rng-tx)
+  target_link_libraries(rng-tx
     core_interface
-    botcoin_common
-    botcoin_util
+    rng_common
+    rng_util
     univalue
   )
-  install_binary_component(botcoin-tx HAS_MANPAGE)
+  install_binary_component(rng-tx HAS_MANPAGE)
 endif()
 
 
 if(BUILD_UTIL)
-  add_executable(botcoin-util bitcoin-util.cpp)
-  add_windows_resources(botcoin-util bitcoin-util-res.rc)
-  add_windows_application_manifest(botcoin-util)
-  target_link_libraries(botcoin-util
+  add_executable(rng-util bitcoin-util.cpp)
+  add_windows_resources(rng-util bitcoin-util-res.rc)
+  add_windows_application_manifest(rng-util)
+  target_link_libraries(rng-util
     core_interface
-    botcoin_common
-    botcoin_util
+    rng_common
+    rng_util
   )
-  install_binary_component(botcoin-util HAS_MANPAGE)
+  install_binary_component(rng-util HAS_MANPAGE)
 endif()
 
 
@@ -395,16 +395,16 @@ if(BUILD_KERNEL_LIB)
     add_subdirectory(test/kernel)
   endif()
   if(BUILD_UTIL_CHAINSTATE)
-    add_executable(botcoin-chainstate
+    add_executable(rng-chainstate
       bitcoin-chainstate.cpp
     )
-    add_windows_application_manifest(botcoin-chainstate)
-    target_link_libraries(botcoin-chainstate
+    add_windows_application_manifest(rng-chainstate)
+    target_link_libraries(rng-chainstate
       PRIVATE
         core_interface
         bitcoinkernel
     )
-    install_binary_component(botcoin-chainstate INTERNAL)
+    install_binary_component(rng-chainstate INTERNAL)
   endif()
 endif()
 

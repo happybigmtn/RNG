@@ -6,7 +6,7 @@
 #ifndef BITCOIN_COMMON_SYSTEM_H
 #define BITCOIN_COMMON_SYSTEM_H
 
-#include <botcoin-build-config.h> // IWYU pragma: keep
+#include <rng-build-config.h> // IWYU pragma: keep
 #include <util/time.h>
 
 #include <chrono>

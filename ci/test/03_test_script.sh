@@ -90,9 +90,9 @@ fi
 
 # Make sure default datadir does not exist and is never read by creating a dummy file
 if [ "$CI_OS_NAME" == "macos" ]; then
-  echo > "${HOME}/Library/Application Support/Botcoin"
+  echo > "${HOME}/Library/Application Support/RNG"
 else
-  echo > "${HOME}/.botcoin"
+  echo > "${HOME}/.rng"
 fi
 
 if [ -z "$NO_DEPENDS" ]; then

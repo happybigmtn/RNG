@@ -36,7 +36,7 @@ bool CheckProofOfWorkImpl(uint256 hash, unsigned int nBits, const Consensus::Par
 /**
  * Get the RandomX seed hash for a given block index.
  * The seed hash is derived from the block hash at the seed height.
- * For genesis block (height 0), uses SHA256("Botcoin Genesis Seed").
+ * For genesis block (height 0), uses SHA256("RNG Genesis Seed").
  *
  * @param pindex Block index to get seed hash for
  * @return       The seed hash for RandomX
@@ -54,7 +54,7 @@ uint256 GetBlockPoWHash(const CBlockHeader& header, const uint256& seed_hash);
 
 /**
  * Check whether a block satisfies the RandomX proof-of-work requirement.
- * This is the main PoW validation function for Botcoin.
+ * This is the main PoW validation function for RNG.
  *
  * @param header  The block header
  * @param pindex  The block index (for determining seed hash)

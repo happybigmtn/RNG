@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 Botcoin Core developers
+# Copyright (c) 2026 RNG Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test Botcoin genesis block.
+"""Test RNG genesis block.
 
 Acceptance Criteria (from specs/genesis.md):
 1. Genesis block has height 0
 2. Genesis previous hash is 32 zero bytes
-3. Genesis coinbase contains "Molty Manifesto" message
+3. Genesis coinbase contains "Life is a random number generator"
 4. Genesis coinbase includes height 0 per BIP34
-5. Genesis reward is exactly 50 BOT
+5. Genesis reward is exactly 50 RNG
 6. Genesis output is provably unspendable (OP_RETURN)
 7. Genesis timestamp is reasonable
 8. All nodes produce identical genesis hash
@@ -42,19 +42,19 @@ class GenesisTest(BitcoinTestFramework):
             f"Genesis previousblockhash should be zeros, got {prev_hash}"
         self.log.info("  PASS: Previous hash is null/zeros")
 
-        self.log.info("Test 3: Coinbase contains 'Molty' message")
+        self.log.info("Test 3: Coinbase contains the genesis message")
         coinbase = genesis['tx'][0]
         coinbase_hex = coinbase['vin'][0]['coinbase']
         coinbase_decoded = bytes.fromhex(coinbase_hex).decode('utf-8', errors='ignore')
-        assert 'Molty' in coinbase_decoded, \
-            f"Genesis should contain 'Molty', got: {coinbase_decoded}"
-        self.log.info(f"  PASS: Coinbase contains 'Molty Manifesto'")
+        assert 'Life is a random number generator' in coinbase_decoded, \
+            f"Genesis should contain the new message, got: {coinbase_decoded}"
+        self.log.info("  PASS: Coinbase contains the new genesis message")
 
-        self.log.info("Test 4: Genesis reward is 50 BOT")
+        self.log.info("Test 4: Genesis reward is 50 RNG")
         coinbase_value = sum(vout['value'] for vout in coinbase['vout'])
         assert coinbase_value == 50, \
-            f"Genesis reward should be 50 BOT, got {coinbase_value}"
-        self.log.info(f"  PASS: Genesis reward is {coinbase_value} BOT")
+            f"Genesis reward should be 50 RNG, got {coinbase_value}"
+        self.log.info(f"  PASS: Genesis reward is {coinbase_value} RNG")
 
         self.log.info("Test 5: Genesis output is OP_RETURN (unspendable)")
         # Check that the output script starts with OP_RETURN (0x6a)

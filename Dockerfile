@@ -1,4 +1,4 @@
-# Botcoin - Bitcoin fork for AI agents
+# RNG - Bitcoin fork for AI agents
 # Multi-stage build for minimal final image
 
 # Stage 1: Build
@@ -38,22 +38,22 @@ RUN apt-get update && apt-get install -y \
     libsqlite3-0 \
     libssl3 \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd -m -s /bin/bash botcoin
+    && useradd -m -s /bin/bash rng
 
 # Copy binaries from builder
-COPY --from=builder /build/build/bin/botcoind /usr/local/bin/
-COPY --from=builder /build/build/bin/botcoin-cli /usr/local/bin/
+COPY --from=builder /build/build/bin/rngd /usr/local/bin/
+COPY --from=builder /build/build/bin/rng-cli /usr/local/bin/
 
 # Create data directory
-RUN mkdir -p /home/botcoin/.botcoin && chown -R botcoin:botcoin /home/botcoin
+RUN mkdir -p /home/rng/.rng && chown -R rng:rng /home/rng
 
-USER botcoin
-WORKDIR /home/botcoin
+USER rng
+WORKDIR /home/rng
 
 # Default config with seeds
-RUN printf 'server=1\nrpcuser=agent\nrpcpassword=changeme\nrpcbind=127.0.0.1\nrpcallowip=127.0.0.1\naddnode=95.111.227.14:8433\naddnode=95.111.229.108:8433\naddnode=95.111.239.142:8433\naddnode=161.97.83.147:8433\naddnode=161.97.97.83:8433\n' > /home/botcoin/.botcoin/botcoin.conf
+RUN printf 'server=1\nrpcuser=agent\nrpcpassword=changeme\nrpcbind=127.0.0.1\nrpcallowip=127.0.0.1\naddnode=95.111.227.14:8433\naddnode=95.111.229.108:8433\naddnode=95.111.239.142:8433\naddnode=161.97.83.147:8433\naddnode=161.97.97.83:8433\n' > /home/rng/.rng/rng.conf
 
 EXPOSE 8432 8433
 
-ENTRYPOINT ["botcoind"]
+ENTRYPOINT ["rngd"]
 CMD ["-printtoconsole"]
