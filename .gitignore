@@ -42,3 +42,6 @@ ARCHIVE*.md
 IMPLEMENTATION*.md
 PROMPT*.md
 RALPH*.md
+
+# Private operational docs (never publish)
+docs-private/
