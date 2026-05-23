@@ -32,6 +32,10 @@ static constexpr uint32_t SHARE_RECORD_VERSION{1};
 static constexpr size_t MAX_SHARE_ORPHANS{64};
 static constexpr size_t MAX_SHARE_INV_SZ{1000};
 static constexpr size_t MAX_SHARE_BATCH_SZ{16};
+//! Size of the proportional reward window (number of recent shares used to
+//! compute payout leaves). Matches the starting value from the sharepool
+//! protocol spec; subject to simulator validation.
+static constexpr size_t SHARE_REWARD_WINDOW_SIZE{720};
 
 struct ShareRecord {
     uint32_t version{SHARE_RECORD_VERSION};

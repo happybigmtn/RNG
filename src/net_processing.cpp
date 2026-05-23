@@ -550,6 +550,11 @@ public:
     void UpdateLastBlockAnnounceTime(NodeId node, int64_t time_in_seconds) override;
     ServiceFlags GetDesirableServiceFlags(ServiceFlags services) const override;
 
+    bool IsSharepoolActive() const override EXCLUSIVE_LOCKS_REQUIRED(!cs_main);
+    SharechainInfo GetSharechainInfo() const override EXCLUSIVE_LOCKS_REQUIRED(!cs_main);
+    size_t GetPendingShareCount() const override;
+    node::ShareStoreResult SubmitShare(const node::ShareRecord& share) override;
+
 private:
     /** Consider evicting an outbound peer based on the amount of time they've been behind our tip */
     void ConsiderEviction(CNode& pto, Peer& peer, std::chrono::seconds time_in_seconds) EXCLUSIVE_LOCKS_REQUIRED(cs_main, g_msgproc_mutex);
@@ -2173,6 +2178,67 @@ void PeerManagerImpl::RelayShareInv(NodeId originator, const std::vector<uint256
         if (pnode->GetId() == originator || pnode->fDisconnect || !pnode->fSuccessfullyConnected) return;
         MakeAndPushMessage(*pnode, NetMsgType::SHAREINV, share_ids);
     });
+}
+
+bool PeerManagerImpl::IsSharepoolActive() const
+{
+    return SharepoolRelayActive();
+}
+
+SharechainInfo PeerManagerImpl::GetSharechainInfo() const
+{
+    SharechainInfo info;
+    if (!m_sharechain) return info;
+
+    info.tip = m_sharechain->BestTip();
+    if (!info.tip.IsNull()) {
+        if (const auto height{m_sharechain->Height(info.tip)}) {
+            info.height = *height;
+        }
+    }
+    info.total_shares = m_sharechain->ShareCount();
+    info.orphan_count = m_sharechain->OrphanCount();
+
+    // Use the active chain tip's difficulty as a proxy for sharechain
+    // difficulty: shares derive from the same block target and tooling
+    // already understands these units.
+    LOCK(cs_main);
+    if (const CBlockIndex* tip{m_chainman.ActiveChain().Tip()}) {
+        const int nShift{(tip->nBits >> 24) & 0xff};
+        double diff{static_cast<double>(0x0000ffff) /
+                    static_cast<double>(tip->nBits & 0x00ffffff)};
+        for (int s{nShift}; s < 29; ++s) diff *= 256.0;
+        for (int s{nShift}; s > 29; --s) diff /= 256.0;
+        info.difficulty = diff;
+    }
+    return info;
+}
+
+size_t PeerManagerImpl::GetPendingShareCount() const
+{
+    if (!m_sharechain) return 0;
+    const size_t total{m_sharechain->ShareCount()};
+    // Shares outside the most recent reward window are considered settled.
+    // Until a settlement-tracking accessor lands (POOL-08C / CHKPT-08A),
+    // approximate "pending" as the shares currently in the rolling window.
+    return std::min<size_t>(total, node::SHARE_REWARD_WINDOW_SIZE);
+}
+
+node::ShareStoreResult PeerManagerImpl::SubmitShare(const node::ShareRecord& share)
+{
+    node::ShareStoreResult result;
+    if (!m_sharechain) {
+        result.status = node::ShareStoreStatus::INVALID;
+        result.reject_reason = "sharechain-unavailable";
+        return result;
+    }
+
+    result = m_sharechain->AddShare(share, m_chainparams.GetConsensus());
+    if (result.status == node::ShareStoreStatus::ACCEPTED && !result.accepted_ids.empty()) {
+        // Originator id of -1 means "no peer to skip" — relay to everyone.
+        RelayShareInv(/*originator=*/-1, result.accepted_ids);
+    }
+    return result;
 }
 
 void PeerManagerImpl::RelayAddress(NodeId originator,

@@ -20,9 +20,11 @@
 #include <interfaces/mining.h>
 #include <key_io.h>
 #include <net.h>
+#include <net_processing.h>
 #include <node/context.h>
 #include <node/internal_miner.h>
 #include <node/miner.h>
+#include <node/sharechain.h>
 #include <node/warnings.h>
 #include <policy/ephemeral_policy.h>
 #include <pow.h>
@@ -36,6 +38,7 @@
 #include <script/signingprovider.h>
 #include <txmempool.h>
 #include <univalue.h>
+#include <util/check.h>
 #include <util/signalinterrupt.h>
 #include <util/strencodings.h>
 #include <util/string.h>
@@ -450,6 +453,13 @@ static RPCHelpMan getmininginfo()
                             {RPCResult::Type::NUM, "difficulty", "The next difficulty"},
                             {RPCResult::Type::STR_HEX, "target", "The next target"}
                         }},
+                        {RPCResult::Type::OBJ, "sharepool", /*optional=*/true, "Sharepool diagnostics (only present when DEPLOYMENT_SHAREPOOL is active)",
+                        {
+                            {RPCResult::Type::BOOL, "active", "Whether the sharepool deployment is active at the current tip"},
+                            {RPCResult::Type::NUM, "sharechain_height", "Height of the best share at the local sharechain tip"},
+                            {RPCResult::Type::NUM, "reward_window_size", "Number of recent shares used to compute proportional payouts"},
+                            {RPCResult::Type::NUM, "pending_shares", "Shares currently in the rolling reward window (not yet settled)"},
+                        }},
                         (IsDeprecatedRPCEnabled("warnings") ?
                             RPCResult{RPCResult::Type::STR, "warnings", "any network and blockchain warnings (DEPRECATED)"} :
                             RPCResult{RPCResult::Type::ARR, "warnings", "any network and blockchain warnings (run with `-deprecatedrpc=warnings` to return the latest warning as a single string)",
@@ -501,6 +511,17 @@ static RPCHelpMan getmininginfo()
             chainman.GetConsensus().signet_challenge;
         obj.pushKV("signet_challenge", HexStr(signet_challenge));
     }
+
+    if (node.peerman && node.peerman->IsSharepoolActive()) {
+        const SharechainInfo sc_info{node.peerman->GetSharechainInfo()};
+        UniValue sharepool(UniValue::VOBJ);
+        sharepool.pushKV("active", true);
+        sharepool.pushKV("sharechain_height", sc_info.height);
+        sharepool.pushKV("reward_window_size", static_cast<uint64_t>(node::SHARE_REWARD_WINDOW_SIZE));
+        sharepool.pushKV("pending_shares", static_cast<uint64_t>(node.peerman->GetPendingShareCount()));
+        obj.pushKV("sharepool", sharepool);
+    }
+
     obj.pushKV("warnings", node::GetWarningsForRpc(*CHECK_NONFATAL(node.warnings), IsDeprecatedRPCEnabled("warnings")));
     return obj;
 },
@@ -522,6 +543,7 @@ static RPCHelpMan getinternalmininginfo()
                 {RPCResult::Type::NUM, "hashrate", "Current hashrate (H/s)"},
                 {RPCResult::Type::NUM, "hashes", "Total hashes computed"},
                 {RPCResult::Type::NUM, "blocks_found", "Number of blocks found"},
+                {RPCResult::Type::NUM, "shares_found", "Number of sharepool shares produced by this miner (zero until share-producing miner lands)"},
                 {RPCResult::Type::NUM, "stale_blocks", "Number of stale blocks"},
                 {RPCResult::Type::NUM, "templates", "Number of templates created"},
                 {RPCResult::Type::NUM, "uptime", "Seconds since miner started"},
@@ -551,6 +573,10 @@ static RPCHelpMan getinternalmininginfo()
     obj.pushKV("hashrate", miner.GetHashRate());
     obj.pushKV("hashes", miner.GetHashCount());
     obj.pushKV("blocks_found", miner.GetBlocksFound());
+    // TODO(POOL-08A): wire to InternalMiner::GetSharesFound() once the
+    // share-producing miner exposes the counter; until then we expose the
+    // field shape with a zero value so RPC consumers can rely on it.
+    obj.pushKV("shares_found", static_cast<uint64_t>(0));
     obj.pushKV("stale_blocks", miner.GetStaleBlocks());
     obj.pushKV("templates", miner.GetTemplateCount());
 
@@ -560,6 +586,117 @@ static RPCHelpMan getinternalmininginfo()
 
     obj.pushKV("fast_mode", miner.IsFastMode());
 
+    return obj;
+},
+    };
+}
+
+static RPCHelpMan submitshare()
+{
+    return RPCHelpMan{
+        "submitshare",
+        "Submit a sharepool share to the local sharechain and relay it to peers.\n"
+        "Only available after the sharepool deployment has activated on the active chain.\n",
+        {
+            {"hexdata", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "hex-encoded ShareRecord (consensus serialization)"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::BOOL, "accepted", "true if the share was accepted into the sharechain"},
+                {RPCResult::Type::STR_HEX, "share_id", "double-SHA256 hash of the submitted share"},
+            }
+        },
+        RPCExamples{
+            HelpExampleCli("submitshare", "\"mysharehex\"")
+            + HelpExampleRpc("submitshare", "\"mysharehex\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    NodeContext& node = EnsureAnyNodeContext(request.context);
+    PeerManager& peerman = EnsurePeerman(node);
+
+    if (!peerman.IsSharepoolActive()) {
+        throw JSONRPCError(RPC_MISC_ERROR, "Sharepool deployment is not active on the current chain");
+    }
+
+    const std::string hex_data{request.params[0].get_str()};
+    const auto raw{TryParseHex<unsigned char>(hex_data)};
+    if (!raw) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Share decode failed: invalid hex");
+    }
+
+    node::ShareRecord share;
+    try {
+        DataStream stream{*raw};
+        stream >> share;
+        if (!stream.empty()) {
+            throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Share decode failed: trailing data after ShareRecord");
+        }
+    } catch (const std::exception& e) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, std::string{"Share decode failed: "} + e.what());
+    }
+
+    const auto result{peerman.SubmitShare(share)};
+    switch (result.status) {
+    case node::ShareStoreStatus::ACCEPTED:
+    case node::ShareStoreStatus::ALREADY_PRESENT: {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("accepted", true);
+        obj.pushKV("share_id", result.share_id.GetHex());
+        return obj;
+    }
+    case node::ShareStoreStatus::ORPHAN:
+        throw JSONRPCError(RPC_VERIFY_ERROR,
+                           result.missing_parent
+                               ? "share-orphan: missing parent " + result.missing_parent->GetHex()
+                               : "share-orphan: missing parent");
+    case node::ShareStoreStatus::INVALID:
+        throw JSONRPCError(RPC_VERIFY_REJECTED,
+                           result.reject_reason.empty() ? "share-rejected" : result.reject_reason);
+    }
+    NONFATAL_UNREACHABLE();
+},
+    };
+}
+
+static RPCHelpMan getsharechaininfo()
+{
+    return RPCHelpMan{
+        "getsharechaininfo",
+        "Returns a json object with diagnostics about the local sharechain.\n"
+        "Only available after the sharepool deployment has activated on the active chain.\n",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR_HEX, "tip", "Best share tip (all-zero if no shares are known)"},
+                {RPCResult::Type::NUM, "height", "Height of the best share tip"},
+                {RPCResult::Type::NUM, "total_shares", "Total accepted shares in the local sharechain"},
+                {RPCResult::Type::NUM, "orphan_count", "Number of orphan shares waiting for missing parents"},
+                {RPCResult::Type::NUM, "difficulty", "Block-target difficulty at the active chain tip"},
+            }
+        },
+        RPCExamples{
+            HelpExampleCli("getsharechaininfo", "")
+            + HelpExampleRpc("getsharechaininfo", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    NodeContext& node = EnsureAnyNodeContext(request.context);
+    PeerManager& peerman = EnsurePeerman(node);
+
+    if (!peerman.IsSharepoolActive()) {
+        throw JSONRPCError(RPC_MISC_ERROR, "Sharepool deployment is not active on the current chain");
+    }
+
+    const SharechainInfo info{peerman.GetSharechainInfo()};
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("tip", info.tip.GetHex());
+    obj.pushKV("height", info.height);
+    obj.pushKV("total_shares", static_cast<uint64_t>(info.total_shares));
+    obj.pushKV("orphan_count", static_cast<uint64_t>(info.orphan_count));
+    obj.pushKV("difficulty", info.difficulty);
     return obj;
 },
     };
@@ -1214,6 +1351,8 @@ void RegisterMiningRPCCommands(CRPCTable& t)
         {"mining", &getblocktemplate},
         {"mining", &submitblock},
         {"mining", &submitheader},
+        {"mining", &submitshare},
+        {"mining", &getsharechaininfo},
 
         {"hidden", &generatetoaddress},
         {"hidden", &generatetodescriptor},

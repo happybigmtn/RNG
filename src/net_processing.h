@@ -11,11 +11,13 @@
 #include <node/txorphanage.h>
 #include <protocol.h>
 #include <threadsafety.h>
+#include <uint256.h>
 #include <util/fs.h>
 #include <validationinterface.h>
 
 #include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -29,11 +31,23 @@ class BanMan;
 class CBlockIndex;
 class CScheduler;
 class DataStream;
-class uint256;
 
 namespace node {
 class Warnings;
+struct ShareRecord;
+struct ShareStoreResult;
 } // namespace node
+
+//! Diagnostic snapshot of sharechain state, exposed to RPC callers.
+struct SharechainInfo {
+    uint256 tip;
+    int height{0};
+    size_t total_shares{0};
+    size_t orphan_count{0};
+    //! Block-target difficulty at the active chain tip when the snapshot was
+    //! taken (matches the units used by `getmininginfo`'s `difficulty`).
+    double difficulty{0.0};
+};
 
 /** Whether transaction reconciliation protocol should be enabled by default. */
 static constexpr bool DEFAULT_TXRECONCILIATION_ENABLE{false};
@@ -144,6 +158,25 @@ public:
 
     /** This function is used for testing the stale tip eviction logic, see denialofservice_tests.cpp */
     virtual void UpdateLastBlockAnnounceTime(NodeId node, int64_t time_in_seconds) = 0;
+
+    /** Whether the sharepool deployment is active at the current chain tip. */
+    virtual bool IsSharepoolActive() const = 0;
+
+    /** Snapshot of sharechain state for diagnostic RPCs. */
+    virtual SharechainInfo GetSharechainInfo() const = 0;
+
+    /** Number of shares whose payouts have not yet been settled into a block
+     *  (i.e. shares not in the most recent reward window). Returned as a
+     *  best-effort diagnostic. */
+    virtual size_t GetPendingShareCount() const = 0;
+
+    /**
+     * Submit a share originated by this node (e.g. via the `submitshare` RPC).
+     * Validates and stores the share, then relays it to peers if accepted.
+     * Returns the underlying SharechainStore result so the caller can map it
+     * to an RPC response.
+     */
+    virtual node::ShareStoreResult SubmitShare(const node::ShareRecord& share) = 0;
 
     /**
      * Gets the set of service flags which are "desirable" for a given peer.
