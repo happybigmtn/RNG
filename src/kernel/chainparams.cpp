@@ -132,15 +132,21 @@ public:
 
         // Sharepool activation on mainnet via BIP9. nStartTime is genesis nTime
         // (2025-01-30) so the deployment evaluates as STARTED from the first
-        // period boundary onward — historical blocks (mined while the rule was
-        // not enforced) are left in DEFINED state and do not need to satisfy
-        // CheckSharepoolCoinbaseSettlement during reindex/IBD.
+        // period boundary onward. Historical blocks mined while the rule was
+        // not enforced never see version-bit-3 signaling accumulate to the
+        // threshold, so the deployment never reaches ACTIVE retroactively —
+        // CheckSharepoolCoinbaseSettlement stays off for them during
+        // reindex/IBD.
         //
         // Aggressive period/threshold params chosen because the network has a
-        // single dominant miner (100% signal rate by construction). 144/144
-        // means LOCKED_IN fires after one 144-block window of unanimous
-        // signaling, then ACTIVE one window later. At ~90 s/block that's ~7
-        // hours from first-signaling block to ACTIVE.
+        // single dominant miner (~100% signal rate by construction).
+        // period=144 + threshold=143 means LOCKED_IN fires after one 144-block
+        // window with at least 143 signaling blocks, then ACTIVE one window
+        // later. At ~90 s/block that's ~7 hours from first-signaling block to
+        // ACTIVE. (threshold < period is a hard BIP9 invariant — see
+        // test/versionbits_tests.cpp:276 — so 143/144 is the most aggressive
+        // legal value; 100%/100% is forbidden because it can stall on a
+        // single non-signaling block.)
         //
         // DO NOT change nStartTime to ALWAYS_ACTIVE — that bypasses BIP9
         // entirely and forces sharepool enforcement on historical blocks,
@@ -150,7 +156,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].nStartTime = 1738195200; // 2025-01-30, == genesis nTime
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].min_activation_height = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].threshold = 144;
+        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].threshold = 143;
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].period = 144;
 
         // Mainnet trust defaults pinned to a live 2026-03-19 chain view.
