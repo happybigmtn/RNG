@@ -130,14 +130,24 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1815; // 90%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
-        // Sharepool activation on mainnet — aggressive params chosen because
-        // the network currently has a single dominant miner (100% signal rate
-        // by construction). period=144 + threshold=144 means LOCKED_IN fires
-        // after one 144-block window of unanimous signaling, then ACTIVE one
-        // window later. At current ~90 s/block that's ~7 hours from
-        // first-signaling block to ACTIVE.
+        // Sharepool activation on mainnet via BIP9. nStartTime is genesis nTime
+        // (2025-01-30) so the deployment evaluates as STARTED from the first
+        // period boundary onward — historical blocks (mined while the rule was
+        // not enforced) are left in DEFINED state and do not need to satisfy
+        // CheckSharepoolCoinbaseSettlement during reindex/IBD.
+        //
+        // Aggressive period/threshold params chosen because the network has a
+        // single dominant miner (100% signal rate by construction). 144/144
+        // means LOCKED_IN fires after one 144-block window of unanimous
+        // signaling, then ACTIVE one window later. At ~90 s/block that's ~7
+        // hours from first-signaling block to ACTIVE.
+        //
+        // DO NOT change nStartTime to ALWAYS_ACTIVE — that bypasses BIP9
+        // entirely and forces sharepool enforcement on historical blocks,
+        // which breaks reindex (see validation.cpp:CheckSharepoolCoinbase
+        // Settlement gate via DeploymentActiveAt + versionbits.cpp:35).
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].bit = 3;
-        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].nStartTime = 1738195200; // 2025-01-30, == genesis nTime
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].min_activation_height = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].threshold = 144;
