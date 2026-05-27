@@ -138,15 +138,27 @@ public:
         // CheckSharepoolCoinbaseSettlement stays off for them during
         // reindex/IBD.
         //
-        // Aggressive period/threshold params chosen because the network has a
-        // single dominant miner (~100% signal rate by construction).
-        // period=144 + threshold=143 means LOCKED_IN fires after one 144-block
-        // window with at least 143 signaling blocks, then ACTIVE one window
-        // later. At ~90 s/block that's ~7 hours from first-signaling block to
-        // ACTIVE. (threshold < period is a hard BIP9 invariant — see
-        // test/versionbits_tests.cpp:276 — so 143/144 is the most aggressive
-        // legal value; 100%/100% is forbidden because it can stall on a
-        // single non-signaling block.)
+        // Fast-activation period/threshold tuned for a single-miner mainnet
+        // (RNG has one dominant miner by construction). period=10 + threshold=9
+        // means LOCKED_IN fires after one 10-block window with at least 9 of
+        // 10 signaling, then ACTIVE one window later — ~20 blocks total
+        // (~3 hours at the live 10-min block target). An earlier draft
+        // tried period=4 threshold=3 (~8 blocks / ~30 min) but that broke
+        // the upstream `versionbits_computeblockversion` test which mines
+        // `period * 3` blocks at nStartTime to test the DEFINED → STARTED
+        // boundary; with period=4 the MTP-vs-nStartTime arithmetic doesn't
+        // advance past the start time in 12 blocks, so the assertion at
+        // test/versionbits_tests.cpp:355 fails. period=10 keeps the test
+        // happy while still cutting activation time from ~7h (period=144)
+        // to ~3h.
+        //
+        // Reindex safety: at the time these params were tightened from
+        // 143/144 to 9/10 (2026-05-27), a full scan of blocks 0..tip on
+        // loom rngd confirmed ZERO historical blocks signal bit 3.
+        // Therefore no historical 10-block window contains ≥9 signaling
+        // blocks, and the deployment never reaches LOCKED_IN on historical
+        // periods during reindex / IBD. Re-run the scan before any further
+        // tightening.
         //
         // DO NOT change nStartTime to ALWAYS_ACTIVE — that bypasses BIP9
         // entirely and forces sharepool enforcement on historical blocks,
@@ -156,8 +168,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].nStartTime = 1738195200; // 2025-01-30, == genesis nTime
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].min_activation_height = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].threshold = 143;
-        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].period = 144;
+        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].threshold = 9;
+        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].period = 10;
 
         // Mainnet trust defaults pinned to a live 2026-03-19 chain view.
         // assumevalid stays on the buried assumeutxo base block while

@@ -494,20 +494,24 @@ BOOST_FIXTURE_TEST_CASE(sharepool_deployment_boundary, BlockVersionTest)
     BOOST_CHECK_EQUAL(DeploymentName(Consensus::DEPLOYMENT_SHAREPOOL), "sharepool");
     BOOST_CHECK_EQUAL(main_sharepool.bit, 3);
     // Mainnet sharepool is BIP9-activating: nStartTime = genesis nTime
-    // (2025-01-30 UTC), threshold/period = 143/144 (most aggressive legal
-    // 99.3% signaling rate, single-miner bootstrap). See chainparams.cpp's
-    // DEPLOYMENT_SHAREPOOL block for the rationale and the no-ALWAYS_ACTIVE
-    // invariant comment.
+    // (2025-01-30 UTC), threshold/period = 9/10 (single-miner activation in
+    // ~3h at the live 10-min block target). period=10 is the floor that
+    // keeps upstream's versionbits_computeblockversion test happy — see the
+    // chainparams.cpp comment block for the period=4 attempt that failed.
+    // Reindex-safe: a full scan of the live mainnet (2026-05-27) confirmed
+    // zero historical bit-3 signaling, so no 10-block historical window
+    // reaches threshold.
     BOOST_CHECK_EQUAL(main_sharepool.nStartTime, 1738195200);
     BOOST_CHECK_EQUAL(main_sharepool.nTimeout, Consensus::BIP9Deployment::NO_TIMEOUT);
     BOOST_CHECK_EQUAL(main_sharepool.min_activation_height, 0);
-    BOOST_CHECK_EQUAL(main_sharepool.threshold, 143);
-    BOOST_CHECK_EQUAL(main_sharepool.period, 144);
-    // Deployment is STARTED (not ACTIVE) at boot; needs 143-of-144 signaling
-    // then a grace window before ACTIVE. The IsActiveAfter(nullptr,...) /
-    // DeploymentActiveAt(main_tip,...) checks below remain valid: neither
-    // genesis nor a default-constructed CBlockIndex has the signaling history
-    // required to drive the threshold-state machine into ACTIVE.
+    BOOST_CHECK_EQUAL(main_sharepool.threshold, 9);
+    BOOST_CHECK_EQUAL(main_sharepool.period, 10);
+    // Deployment is STARTED (not ACTIVE) at boot; needs 9-of-10 signaling in
+    // any 10-block window, then a grace window before ACTIVE. The
+    // IsActiveAfter(nullptr,...) / DeploymentActiveAt(main_tip,...) checks
+    // below remain valid: neither genesis nor a default-constructed
+    // CBlockIndex has the signaling history required to drive the
+    // threshold-state machine into ACTIVE.
     BOOST_CHECK(!versionbitscache.IsActiveAfter(nullptr, main_consensus, Consensus::DEPLOYMENT_SHAREPOOL));
     CBlockIndex main_tip;
     BOOST_CHECK(!DeploymentActiveAt(main_tip, main_consensus, Consensus::DEPLOYMENT_SHAREPOOL, versionbitscache));
