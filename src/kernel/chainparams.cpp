@@ -130,13 +130,18 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1815; // 90%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
-        // Sharepool remains dormant on mainnet until regtest and devnet gates pass.
+        // Sharepool activation on mainnet — aggressive params chosen because
+        // the network currently has a single dominant miner (100% signal rate
+        // by construction). period=144 + threshold=144 means LOCKED_IN fires
+        // after one 144-block window of unanimous signaling, then ACTIVE one
+        // window later. At current ~90 s/block that's ~7 hours from
+        // first-signaling block to ACTIVE.
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].bit = 3;
-        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].min_activation_height = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].threshold = 1916; // 95%
-        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].period = 2016;
+        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].threshold = 144;
+        consensus.vDeployments[Consensus::DEPLOYMENT_SHAREPOOL].period = 144;
 
         // Mainnet trust defaults pinned to a live 2026-03-19 chain view.
         // assumevalid stays on the buried assumeutxo base block while
